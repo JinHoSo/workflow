@@ -53,7 +53,7 @@ export interface NodeConfiguration {
  * Core node interface representing a workflow node
  * Nodes are the fundamental execution units in a workflow
  */
-export interface WorkflowNode {
+export interface Node {
   /** Node properties (id, name, type, etc.) */
   properties: NodeProperties
   /** Current execution state of the node */

@@ -1,5 +1,5 @@
 import { Workflow } from "../core/workflow"
-import { WorkflowNodeBase } from "../core/base-node"
+import { BaseNode } from "../core/base-node"
 import { ManualTrigger } from "../triggers/manual-trigger"
 import { ScheduleTrigger } from "../triggers/schedule-trigger"
 import { ExecutionEngine } from "../execution/execution-engine"
@@ -8,7 +8,7 @@ import type { ExecutionContext } from "../interfaces/execution-state"
 import type { ScheduleConfig } from "../interfaces/schedule"
 import { NodeState } from "../types"
 
-class TestNode extends WorkflowNodeBase {
+class TestNode extends BaseNode {
   protected async process(context: ExecutionContext): Promise<NodeOutput> {
     return context.input
   }

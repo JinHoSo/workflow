@@ -1,5 +1,5 @@
 import { Workflow } from "../core/workflow"
-import { WorkflowNodeBase } from "../core/base-node"
+import { BaseNode } from "../core/base-node"
 import { ExecutionEngine } from "../execution/execution-engine"
 import { ManualTrigger } from "../triggers/manual-trigger"
 import { JavaScriptNode } from "../nodes/javascript-execution-node"
@@ -10,7 +10,7 @@ import type { ExecutionContext } from "../interfaces/execution-state"
 /**
  * Async node that simulates async operation with delay
  */
-class AsyncNode extends WorkflowNodeBase {
+class AsyncNode extends BaseNode {
   constructor(properties: NodeProperties, private delayMs: number = 100) {
     super(properties)
     this.addInput("input", "data")
@@ -32,7 +32,7 @@ class AsyncNode extends WorkflowNodeBase {
 /**
  * Sync node that processes immediately (but still async for consistency)
  */
-class SyncNode extends WorkflowNodeBase {
+class SyncNode extends BaseNode {
   constructor(properties: NodeProperties) {
     super(properties)
     this.addInput("input", "data")

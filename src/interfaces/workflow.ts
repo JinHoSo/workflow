@@ -1,4 +1,4 @@
-import type { WorkflowNode } from "./node"
+import type { Node } from "./node"
 import type { WorkflowLinks } from "./connection"
 import type { NodeTypeRegistry } from "./node-type"
 import type { DataRecord } from "./node-execution-data"
@@ -82,7 +82,7 @@ export interface WorkflowExportData {
  * Node factory function type
  * Creates a node instance from serialized node data
  */
-export type NodeFactory = (serializedNode: SerializedNode) => WorkflowNode
+export type NodeFactory = (serializedNode: SerializedNode) => Node
 
 /**
  * Core workflow interface
@@ -94,7 +94,7 @@ export interface Workflow {
   /** Optional name of the workflow */
   name?: string
   /** Collection of nodes keyed by node name */
-  nodes: { [nodeName: string]: WorkflowNode }
+  nodes: { [nodeName: string]: Node }
   /** Links indexed by source node (for finding outputs) */
   linksBySource: WorkflowLinks
   /** Links indexed by destination node (for finding inputs) */

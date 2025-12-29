@@ -1,4 +1,4 @@
-import { WorkflowNodeBase } from "../core/base-node"
+import { BaseNode } from "../core/base-node"
 import type { NodeProperties, NodeConfiguration, DataRecord, NodeInput, NodeOutput } from "../interfaces"
 import type { ExecutionContext } from "../interfaces/execution-state"
 import { LinkType } from "../types"
@@ -13,7 +13,7 @@ import { LinkType } from "../types"
  * - output(data): Set output data (can be called multiple times to add items)
  * - return value: If code returns a value, it's automatically set as output
  */
-export class JavaScriptNode extends WorkflowNodeBase {
+export class JavaScriptNode extends BaseNode {
   /**
    * Creates a new JavaScriptNode
    * @param properties - Node properties

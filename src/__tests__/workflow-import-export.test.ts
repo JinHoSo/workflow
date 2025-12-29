@@ -1,5 +1,5 @@
 import { Workflow } from "../core/workflow"
-import { WorkflowNodeBase } from "../core/base-node"
+import { BaseNode } from "../core/base-node"
 import { ManualTrigger } from "../triggers/manual-trigger"
 import { JavaScriptNode } from "../nodes/javascript-execution-node"
 import type { NodeOutput } from "../interfaces"
@@ -10,7 +10,7 @@ import { NodeState } from "../types"
 /**
  * Test node for testing import/export
  */
-class TestNode extends WorkflowNodeBase {
+class TestNode extends BaseNode {
   protected async process(context: ExecutionContext): Promise<NodeOutput> {
     return context.input
   }

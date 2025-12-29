@@ -1,8 +1,8 @@
-import type { Workflow as IWorkflow, WorkflowNode, NodeInput, NodeOutput, DataRecord } from "../interfaces"
+import type { Workflow as IWorkflow, Node, NodeInput, NodeOutput, DataRecord } from "../interfaces"
 import type { ExecutionState, ExecutionContext } from "../interfaces/execution-state"
 import { WorkflowState } from "../interfaces"
 import { NodeState } from "../types"
-import { WorkflowNodeBase } from "../core/base-node"
+import { BaseNode } from "../core/base-node"
 
 /**
  * Execution engine that orchestrates workflow execution
@@ -44,7 +44,7 @@ export class ExecutionEngine {
       }
 
       // Initialize execution state with trigger node output
-      if (triggerNode instanceof WorkflowNodeBase && triggerNode.state === NodeState.Completed) {
+      if (triggerNode instanceof BaseNode && triggerNode.state === NodeState.Completed) {
         this.executionState[triggerNodeName] = triggerNode.getAllResults()
       }
 
@@ -84,7 +84,7 @@ export class ExecutionEngine {
           await nodePromise
 
           // Update execution state with node output
-          if (node instanceof WorkflowNodeBase && node.state === NodeState.Completed) {
+          if (node instanceof BaseNode && node.state === NodeState.Completed) {
             this.executionState[nodeName] = node.getAllResults()
           }
 
@@ -108,7 +108,7 @@ export class ExecutionEngine {
    * @param context - Execution context containing input data and state
    * @throws Error if node is not ready or execution fails (unless continueOnFail is set)
    */
-  private async runNode(node: WorkflowNode, context: ExecutionContext): Promise<void> {
+  private async runNode(node: Node, context: ExecutionContext): Promise<void> {
     if (this.workflow.mockData?.[node.properties.name]) {
       return
     }
@@ -118,7 +118,7 @@ export class ExecutionEngine {
     }
 
     try {
-      if (node instanceof WorkflowNodeBase) {
+      if (node instanceof BaseNode) {
         await node.run(context)
       }
     } catch (error) {
@@ -246,13 +246,13 @@ export class ExecutionEngine {
    * @param outputPortName - Name of the output port
    * @returns Data for the output port (single item or array)
    */
-  private getNodeOutput(node: WorkflowNode, outputPortName: string): DataRecord | DataRecord[] {
+  private getNodeOutput(node: Node, outputPortName: string): DataRecord | DataRecord[] {
     if (this.workflow.mockData?.[node.properties.name]) {
       const mockOutput = this.workflow.mockData[node.properties.name]
       return mockOutput[outputPortName] || []
     }
 
-    if (node instanceof WorkflowNodeBase) {
+    if (node instanceof BaseNode) {
       return node.getResult(outputPortName)
     }
 

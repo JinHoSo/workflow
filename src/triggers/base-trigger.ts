@@ -1,4 +1,4 @@
-import { WorkflowNodeBase } from "../core/base-node"
+import { BaseNode } from "../core/base-node"
 import type { NodeOutput } from "../interfaces"
 import type { WorkflowTrigger } from "../interfaces"
 import type { ExecutionContext } from "../interfaces/execution-state"
@@ -10,7 +10,7 @@ import { NodeState } from "../types"
  * Subclasses must implement activate() to define trigger-specific behavior
  * Note: run() here is different from WorkflowNodeBase.run() - it triggers workflow, not node execution
  */
-export abstract class WorkflowTriggerBase extends WorkflowNodeBase implements WorkflowTrigger {
+export abstract class WorkflowTriggerBase extends BaseNode implements WorkflowTrigger {
   /**
    * Triggers the workflow execution
    * This method is separate from WorkflowNodeBase.run() as triggers have different semantics

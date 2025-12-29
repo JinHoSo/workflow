@@ -1,5 +1,5 @@
 import type {
-  WorkflowNode,
+  Node,
   NodeProperties,
   NodeConfiguration,
   InputPort,
@@ -16,7 +16,7 @@ import { LinkType } from "../types"
  * Provides common functionality for port management, state tracking, and execution
  * Subclasses must implement process() to define node-specific behavior
  */
-export abstract class WorkflowNodeBase implements WorkflowNode {
+export abstract class BaseNode implements Node {
   properties: NodeProperties
   state: NodeState
   config: NodeConfiguration

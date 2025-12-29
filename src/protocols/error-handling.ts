@@ -1,4 +1,4 @@
-import type { WorkflowNode } from "../interfaces"
+import type { Node } from "../interfaces"
 
 export interface ErrorInfo {
   message: string
@@ -8,7 +8,7 @@ export interface ErrorInfo {
 }
 
 export interface ErrorHandlingProtocol {
-  handleError(node: WorkflowNode, error: Error): void
-  propagateError(node: WorkflowNode, error: Error): ErrorInfo
-  shouldStopExecution(node: WorkflowNode, error: Error): boolean
+  handleError(node: Node, error: Error): void
+  propagateError(node: Node, error: Error): ErrorInfo
+  shouldStopExecution(node: Node, error: Error): boolean
 }

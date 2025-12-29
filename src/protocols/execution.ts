@@ -1,13 +1,13 @@
-import type { WorkflowNode } from "../interfaces"
+import type { Node } from "../interfaces"
 import type { NodeInput, NodeOutput } from "../interfaces"
 
 export interface ExecutionProtocolContext {
-  node: WorkflowNode
+  node: Node
   inputData: NodeInput
   workflowId: string
 }
 
 export interface ExecutionProtocol {
   executeNode(context: ExecutionProtocolContext): Promise<NodeOutput> | NodeOutput
-  validateExecution(node: WorkflowNode): boolean
+  validateExecution(node: Node): boolean
 }

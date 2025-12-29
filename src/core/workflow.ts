@@ -1,6 +1,6 @@
 import type {
   Workflow as IWorkflow,
-  WorkflowNode,
+  Node,
   WorkflowLinks,
   NodeTypeRegistry,
   DataRecord,
@@ -22,7 +22,7 @@ import { mapLinksByTarget } from "./connection-utils"
 export class Workflow implements IWorkflow {
   id: string
   name?: string
-  nodes: { [nodeName: string]: WorkflowNode }
+  nodes: { [nodeName: string]: Node }
   linksBySource: WorkflowLinks
   linksByTarget: WorkflowLinks
   nodeTypeRegistry: NodeTypeRegistry
@@ -46,7 +46,7 @@ export class Workflow implements IWorkflow {
     id: string,
     nodeTypeRegistry?: NodeTypeRegistry,
     name?: string,
-    nodes: WorkflowNode[] = [],
+    nodes: Node[] = [],
     links: WorkflowLinks = {},
     staticData: DataRecord = {},
     settings: WorkflowSettings = {},
@@ -72,7 +72,7 @@ export class Workflow implements IWorkflow {
    * Adds a node to the workflow
    * @param node - Node instance to add
    */
-  addNode(node: WorkflowNode): void {
+  addNode(node: Node): void {
     this.nodes[node.properties.name] = node
   }
 
@@ -151,7 +151,7 @@ export class Workflow implements IWorkflow {
    * Replaces all nodes in the workflow
    * @param nodes - Array of nodes to set
    */
-  setNodes(nodes: WorkflowNode[]): void {
+  setNodes(nodes: Node[]): void {
     this.nodes = {}
     for (const node of nodes) {
       this.nodes[node.properties.name] = node
@@ -277,7 +277,7 @@ export class Workflow implements IWorkflow {
     }
 
     // Reconstruct nodes
-    const nodes: WorkflowNode[] = []
+    const nodes: Node[] = []
     for (const serializedNode of exportData.nodes) {
       const node = nodeFactory(serializedNode)
       nodes.push(node)

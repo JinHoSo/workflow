@@ -10,13 +10,13 @@ export function mapLinksByTarget(links: WorkflowLinks): WorkflowLinks {
   const targetLinks: WorkflowLinks = {}
 
   for (const sourceNode in links) {
-    if (!links.hasOwnProperty(sourceNode)) {
+    if (!Object.prototype.hasOwnProperty.call(links, sourceNode)) {
       continue
     }
 
     const nodeLinks = links[sourceNode]
     for (const inputName in nodeLinks) {
-      if (!nodeLinks.hasOwnProperty(inputName)) {
+      if (!Object.prototype.hasOwnProperty.call(nodeLinks, inputName)) {
         continue
       }
 

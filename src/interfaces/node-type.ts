@@ -1,4 +1,4 @@
-import type { WorkflowNode } from "./node"
+import type { Node } from "./node"
 import type { NodeInput, NodeOutput } from "./node-execution-data"
 
 /**
@@ -28,7 +28,7 @@ export interface NodeType {
    * @param inputData - Input data from connected nodes (port name based)
    * @returns Output data (port name based)
    */
-  run(node: WorkflowNode, inputData: NodeInput): Promise<NodeOutput> | NodeOutput
+  run(node: Node, inputData: NodeInput): Promise<NodeOutput> | NodeOutput
 }
 
 /**
