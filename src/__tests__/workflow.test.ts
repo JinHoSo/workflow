@@ -9,7 +9,7 @@ import type { ScheduleConfig } from "../interfaces/schedule"
 import { NodeState } from "../types"
 
 class TestNode extends WorkflowNodeBase {
-  protected process(context: ExecutionContext): NodeOutput {
+  protected async process(context: ExecutionContext): Promise<NodeOutput> {
     return context.input
   }
 }

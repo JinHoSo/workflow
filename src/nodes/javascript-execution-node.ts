@@ -42,11 +42,12 @@ export class JavaScriptNode extends WorkflowNodeBase {
 
   /**
    * Executes the configured JavaScript code
+   * Supports both sync and async JavaScript code execution
    * @param context - Execution context containing input data and state
-   * @returns Output data from JavaScript execution (port name based)
+   * @returns Promise that resolves to output data from JavaScript execution (port name based)
    * @throws Error if code execution fails
    */
-  protected process(context: ExecutionContext): NodeOutput {
+  protected async process(context: ExecutionContext): Promise<NodeOutput> {
     const code = this.config.code as string
     if (!code) {
       throw new Error("JavaScript code not configured")
@@ -54,7 +55,7 @@ export class JavaScriptNode extends WorkflowNodeBase {
 
     try {
       const api = this.createExecutionAPI(context)
-      const result = this.executeCode(code, api)
+      const result = await this.executeCode(code, api)
       return this.formatResult(result, api.outputItems)
     } catch (error) {
       throw new Error(`JavaScript execution failed: ${error instanceof Error ? error.message : String(error)}`)
@@ -75,13 +76,16 @@ export class JavaScriptNode extends WorkflowNodeBase {
 
   /**
    * Validates JavaScript code syntax
+   * Supports both sync and async code (including await)
+   * Always validates as async function to support await syntax
    * @param code - JavaScript code to validate
    * @returns true if syntax is valid
    * @throws Error if syntax is invalid
    */
   private validateCode(code: string): boolean {
     try {
-      new Function(code)
+      // Always validate as async function to support both sync and async code
+      new Function("return async function() { " + code + " }")
       return true
     } catch (error) {
       throw new Error(`Invalid JavaScript syntax: ${error instanceof Error ? error.message : String(error)}`)
@@ -166,11 +170,12 @@ export class JavaScriptNode extends WorkflowNodeBase {
 
   /**
    * Executes JavaScript code with the provided API
+   * Supports both sync and async code execution
    * @param code - JavaScript code to execute
-   * @param api - Execution API (input, inputAll, output functions)
-   * @returns Return value from code execution, or undefined if no return
+   * @param api - Execution API (input, inputAll, state, output functions)
+   * @returns Promise that resolves to return value from code execution, or undefined if no return
    */
-  private executeCode(
+  private async executeCode(
     code: string,
     api: {
       input: (portName?: string, index?: number) => DataRecord
@@ -178,19 +183,20 @@ export class JavaScriptNode extends WorkflowNodeBase {
       state: (nodeName?: string, portName?: string) => NodeOutput | DataRecord | DataRecord[]
       output: (data: DataRecord, portName?: string) => void
     },
-  ): unknown {
+  ): Promise<unknown> {
     const { input, inputAll, state, output } = api
 
-    // Wrap code to capture return value
+    // Wrap code to capture return value (supports both sync and async)
+    // If code returns a Promise, it will be properly awaited
     const wrappedCode = `
-      return (function() {
+      return (async function() {
         ${code}
       })();
     `
 
     try {
       const func = new Function("input", "inputAll", "state", "output", wrappedCode)
-      const returnValue = func(input, inputAll, state, output)
+      const returnValue = await func(input, inputAll, state, output)
 
       // If code returns a value, use it as output
       // Otherwise, use the items collected via output() calls

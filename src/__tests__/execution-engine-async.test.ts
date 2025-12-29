@@ -30,7 +30,7 @@ class AsyncNode extends WorkflowNodeBase {
 }
 
 /**
- * Sync node that processes immediately
+ * Sync node that processes immediately (but still async for consistency)
  */
 class SyncNode extends WorkflowNodeBase {
   constructor(properties: NodeProperties) {
@@ -39,7 +39,7 @@ class SyncNode extends WorkflowNodeBase {
     this.addOutput("output", "data")
   }
 
-  protected process(context: ExecutionContext): NodeOutput {
+  protected async process(context: ExecutionContext): Promise<NodeOutput> {
     const inputData = context.input.input
     const inputValue = Array.isArray(inputData) ? inputData[0] : inputData
     const value = (typeof inputValue === "object" && inputValue !== null && "value" in inputValue

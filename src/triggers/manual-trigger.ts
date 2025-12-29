@@ -70,9 +70,9 @@ export class ManualTrigger extends WorkflowTriggerBase {
   /**
    * Internal processing method (required by WorkflowNodeBase)
    * @param context - Execution context (not used for triggers)
-   * @returns Input data as-is
+   * @returns Promise that resolves to input data as-is
    */
-  protected override process(context: ExecutionContext): NodeOutput {
+  protected override async process(context: ExecutionContext): Promise<NodeOutput> {
     return context.input
   }
 }

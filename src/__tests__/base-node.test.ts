@@ -4,7 +4,7 @@ import type { NodeProperties, NodeOutput, DataRecord } from "../interfaces"
 import type { ExecutionContext } from "../interfaces/execution-state"
 
 class TestNode extends WorkflowNodeBase {
-  protected process(context: ExecutionContext): NodeOutput {
+  protected async process(context: ExecutionContext): Promise<NodeOutput> {
     // Map input data to output ports
     const output: NodeOutput = {}
     for (const portName in context.input) {
@@ -66,7 +66,7 @@ describe("WorkflowNodeBase", () => {
 
   test("should handle errors during execution", async () => {
     class ErrorNode extends WorkflowNodeBase {
-      protected process(): NodeOutput {
+      protected async process(): Promise<NodeOutput> {
         throw new Error("Test error")
       }
     }

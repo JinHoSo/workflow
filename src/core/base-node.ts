@@ -196,10 +196,11 @@ export abstract class WorkflowNodeBase implements WorkflowNode {
   /**
    * Abstract method that subclasses must implement
    * Contains the node-specific processing logic
+   * All nodes must implement async processing for consistency
    * @param context - Execution context containing input data and state
-   * @returns Output data (port name based)
+   * @returns Promise that resolves to output data (port name based)
    */
-  protected abstract process(context: ExecutionContext): Promise<NodeOutput> | NodeOutput
+  protected abstract process(context: ExecutionContext): Promise<NodeOutput>
 
   /**
    * Validates node configuration
