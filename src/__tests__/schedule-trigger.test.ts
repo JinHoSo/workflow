@@ -35,7 +35,7 @@ describe("ScheduleTrigger", () => {
 
   afterEach(() => {
     // Deactivate trigger to clear any scheduled timers
-    trigger.deactivate()
+    trigger.deactivateSchedule()
     // Clear all fake timers
     jest.clearAllTimers()
     // Restore real timers
@@ -180,7 +180,7 @@ describe("ScheduleTrigger", () => {
     test("should deactivate schedule", () => {
       const config: ScheduleConfig = { type: "minute", second: 11 }
       trigger.setup({ schedule: config })
-      trigger.deactivate()
+      trigger.deactivateSchedule()
       expect(trigger.getNextExecutionTime()).toBeUndefined()
     })
 
@@ -252,7 +252,6 @@ describe("ScheduleTrigger", () => {
       })
 
       trigger.setup({ schedule: config })
-      trigger.trigger()
 
       // 초기 실행 시간 확인
       const nextExecutionTime = trigger.getNextExecutionTime()
@@ -292,7 +291,7 @@ describe("ScheduleTrigger", () => {
       node1.addInput("input", "data")
       node1.addOutput("output", "data")
 
-      workflow.addTriggerNode(trigger)
+      workflow.addNode(trigger)
       workflow.addNode(node1)
       workflow.linkNodes("schedule-trigger", "output", "node1", "input")
 

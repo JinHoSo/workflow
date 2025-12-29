@@ -10,6 +10,8 @@ import type {
 import type { ExecutionContext } from "../interfaces/execution-state"
 import { NodeState } from "../types"
 import { LinkType } from "../types"
+import { schemaValidator } from "../schemas/schema-validator"
+import type { JsonSchema } from "../schemas/schema-validator"
 
 /**
  * Abstract base class for all workflow nodes
@@ -25,6 +27,8 @@ export abstract class BaseNode implements Node {
   annotation?: string
   error?: Error
   protected resultData: NodeOutput = {}
+  /** Configuration schema for validation (optional, can be set by subclasses) */
+  protected configurationSchema?: JsonSchema
 
   /**
    * Creates a new WorkflowNodeBase instance
@@ -116,12 +120,23 @@ export abstract class BaseNode implements Node {
 
   /**
    * Configures the node with parameters
-   * Validates configuration and updates config if valid
+   * Validates configuration against schema (if provided) and updates config if valid
    * Does not change node state - nodes can execute from Idle state if they have valid configuration
    * @param config - Configuration parameters
    * @throws Error if configuration is invalid
    */
   setup(config: NodeConfiguration): void {
+    // Validate against schema if provided
+    if (this.configurationSchema) {
+      const validationResult = schemaValidator.validate(this.configurationSchema, config)
+      if (!validationResult.valid) {
+        throw new Error(
+          `Configuration validation failed: ${validationResult.errorMessage || "Invalid configuration"}`,
+        )
+      }
+    }
+
+    // Also run custom validation if provided
     if (this.validateConfig(config)) {
       this.config = { ...this.config, ...config }
       // State is not changed - nodes can execute from Idle state if they have valid configuration

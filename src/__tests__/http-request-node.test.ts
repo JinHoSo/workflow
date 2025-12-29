@@ -37,7 +37,7 @@ describe("HttpRequestNode", () => {
           method: "INVALID" as "GET",
           url: "https://api.example.com/data",
         })
-      }).toThrow("Invalid HTTP method")
+      }).toThrow("Configuration validation failed")
     })
 
     test("should throw error for invalid timeout", () => {
@@ -47,7 +47,7 @@ describe("HttpRequestNode", () => {
           url: "https://api.example.com/data",
           timeout: -1,
         })
-      }).toThrow("Timeout must be a positive number")
+      }).toThrow("Configuration validation failed")
     })
 
     test("should throw error for Basic Auth without credentials", () => {

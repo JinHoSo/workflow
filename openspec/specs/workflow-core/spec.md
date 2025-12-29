@@ -34,7 +34,12 @@ The system SHALL provide an execution engine that can execute workflows by runni
 
 #### Scenario: Execute simple workflow
 - **WHEN** a workflow with a trigger node and processing nodes is executed
-- **THEN** the execution engine SHALL resolve node dependencies
+- **THEN** the execution engine SHALL check if the workflow is in Idle state
+- **AND** if the workflow is not in Idle state, the execution engine SHALL reject the execution with an error
+- **AND** if the workflow is in Idle state, the execution engine SHALL reset regular nodes (non-trigger nodes) to clean state before execution
+- **AND** trigger nodes SHALL NOT be reset to preserve their state and configuration
+- **AND** the execution engine SHALL clear all previous execution state
+- **AND** the execution engine SHALL resolve node dependencies
 - **AND** nodes SHALL be executed in dependency order
 - **AND** data SHALL flow from output ports to connected input ports
 - **AND** execution data SHALL be structured with json, binary, and error information
@@ -59,6 +64,14 @@ The system SHALL provide an execution engine that can execute workflows by runni
 - **AND** the workflow execution SHALL stop
 - **AND** error information SHALL be available for inspection
 
+#### Scenario: Multiple workflow executions
+- **WHEN** a workflow is executed multiple times
+- **THEN** each execution SHALL start with a clean state for regular nodes
+- **AND** all regular node outputs from previous executions SHALL be cleared
+- **AND** all execution state from previous executions SHALL be cleared
+- **AND** trigger nodes SHALL preserve their state and configuration between executions
+- **AND** previous executions SHALL NOT interfere with new executions
+
 ### Requirement: Workflow State Management
 The system SHALL track the overall state of a workflow during execution.
 
@@ -69,8 +82,11 @@ The system SHALL track the overall state of a workflow during execution.
 
 #### Scenario: Reset workflow
 - **WHEN** a workflow is reset
-- **THEN** all nodes in the workflow SHALL be reset to their initial state
-- **AND** all execution results SHALL be cleared
+- **THEN** all regular nodes (non-trigger nodes) in the workflow SHALL be reset to their initial state
+- **AND** trigger nodes SHALL NOT be reset to preserve their state and configuration
+- **AND** all execution results from regular nodes SHALL be cleared
+- **AND** all regular node outputs SHALL be cleared
+- **AND** all execution state SHALL be cleared
 
 ### Requirement: Workflow Data Management
 The system SHALL provide mechanisms for managing workflow-level data and settings.

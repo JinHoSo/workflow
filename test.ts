@@ -20,7 +20,7 @@ async function createNewsCollectionWorkflow(): Promise<void> {
   // 1. Schedule Trigger 생성 (3분마다 실행)
   const scheduleConfig: ScheduleConfig = {
     type: "interval",
-    intervalMs: 1 * 10 * 1000, // 3분 (밀리초)
+    intervalMs: 1 * 10 * 1000,
   }
 
   const scheduleTrigger = new ScheduleTrigger({
@@ -49,8 +49,8 @@ async function createNewsCollectionWorkflow(): Promise<void> {
     position: [400, 0],
   })
 
-  // 노드들을 워크플로우에 추가
-  workflow.addTriggerNode(scheduleTrigger)
+  // 노드들을 워크플로우에 추가 (unified model - all nodes use addNode)
+  workflow.addNode(scheduleTrigger)
   workflow.addNode(httpRequestNode)
   workflow.addNode(javascriptNode)
 
@@ -126,14 +126,6 @@ async function createNewsCollectionWorkflow(): Promise<void> {
   // Schedule Trigger에 ExecutionEngine 설정
   // ScheduleTrigger가 스케줄 시간이 되면 자동으로 워크플로우를 실행합니다
   scheduleTrigger.setExecutionEngine(engine)
-
-  // Schedule Trigger 활성화
-  scheduleTrigger.trigger()
-
-  console.log("뉴스 URL 수집 워크플로우가 시작되었습니다.")
-  console.log("다음 실행 시간:", scheduleTrigger.getNextExecutionTime()?.toISOString())
-  console.log("워크플로우 ID:", workflow.id)
-  console.log("워크플로우 이름:", workflow.name)
 }
 
 // 워크플로우 생성 및 실행

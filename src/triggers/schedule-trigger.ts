@@ -7,6 +7,7 @@ import { NodeState } from "../types"
 import { WorkflowState } from "../interfaces"
 import { validateScheduleConfig, calculateNextExecution } from "./schedule-utils"
 import type { ExecutionEngine } from "../execution/execution-engine"
+import { scheduleTriggerSchema } from "../schemas/schedule-trigger-schema"
 
 /**
  * Schedule trigger node that executes workflows on a time-based schedule
@@ -22,7 +23,8 @@ export class ScheduleTrigger extends TriggerNodeBase {
    * @param properties - Node properties
    */
   constructor(properties: NodeProperties) {
-    super(properties)
+    super({ ...properties, isTrigger: true })
+    this.configurationSchema = scheduleTriggerSchema
     this.addOutput("output", "data", LinkType.Standard)
   }
 
@@ -33,7 +35,7 @@ export class ScheduleTrigger extends TriggerNodeBase {
   setup(config: NodeConfiguration): void {
     // If schedule is being changed while active, deactivate first
     if (this.scheduleTimer) {
-      this.deactivate()
+      this.deactivateSchedule()
     }
 
     // Extract schedule configuration
@@ -45,10 +47,7 @@ export class ScheduleTrigger extends TriggerNodeBase {
 
     super.setup(config)
 
-    // // Automatically activate schedule after setup completes (state is Idle)
-    // if (this.scheduleConfig && this.state === NodeState.Idle) {
-    //   this.activateSchedule()
-    // }
+    this.activateSchedule()
   }
 
   /**
@@ -61,7 +60,7 @@ export class ScheduleTrigger extends TriggerNodeBase {
     }
 
     // Deactivate any existing schedule
-    this.deactivate()
+    this.deactivateSchedule()
 
     // Calculate and schedule next execution
     this.scheduleNextExecution()
@@ -71,7 +70,7 @@ export class ScheduleTrigger extends TriggerNodeBase {
    * Deactivates the schedule trigger
    * Stops all scheduled executions and cleans up resources
    */
-  deactivate(): void {
+  deactivateSchedule(): void {
     if (this.scheduleTimer) {
       clearTimeout(this.scheduleTimer)
       this.scheduleTimer = undefined
@@ -119,12 +118,6 @@ export class ScheduleTrigger extends TriggerNodeBase {
    * @param data - Initial data for the workflow (port name based)
    */
   protected override activate(data: NodeOutput): void {
-    // Schedule next execution immediately, before executing the workflow
-    // This ensures fixed intervals for interval type and proper timing for absolute time types
-    if (this.scheduleConfig) {
-      this.activateSchedule()
-    }
-
     // Reset state to Idle if needed (allows re-triggering)
     if (this.state === NodeState.Completed || this.state === NodeState.Failed) {
       this.setState(NodeState.Idle)
@@ -132,16 +125,41 @@ export class ScheduleTrigger extends TriggerNodeBase {
     this.setState(NodeState.Running)
     // Set output data so connected nodes can access it
     this.resultData = data
+    // Schedule next execution immediately, before executing the workflow
+    // This ensures fixed intervals for interval type and proper timing for absolute time types
+    this.activateSchedule()
     this.setState(NodeState.Completed)
+    this.executeEngine()
+  }
+
+  private executeEngine(): void {
+    if (this.executionEngine) {
+      this.executionEngine.execute(this.properties.name).catch((error) => {
+        this.error = error instanceof Error ? error : new Error(String(error))
+      })
+    }
   }
 
   /**
-   * Internal processing method (required by WorkflowNodeBase)
-   * @param context - Execution context (not used for triggers)
-   * @returns Promise that resolves to input data as-is
+   * Internal processing method (required by BaseNode)
+   * For triggers, this processes the trigger node execution after activation
+   * @param context - Execution context containing input data and state
+   * @returns Promise that resolves to output data (port name based)
    */
   protected override async process(context: ExecutionContext): Promise<NodeOutput> {
-    return context.input
+    // For schedule triggers, return the result data that was set during activate()
+    // If resultData is already set (from activate()), use it
+    if (Object.keys(this.resultData).length > 0) {
+      return this.resultData
+    }
+    // Otherwise, return input data or default data
+    const outputPortName = this.outputs[0]?.name || "output"
+    if (context.input[outputPortName]) {
+      const inputData = context.input[outputPortName]
+      const normalized = Array.isArray(inputData) ? inputData : [inputData]
+      return { [outputPortName]: normalized.length === 1 ? normalized[0] : normalized }
+    }
+    return this.getDefaultData()
   }
 
   /**
@@ -171,25 +189,7 @@ export class ScheduleTrigger extends TriggerNodeBase {
     if (delayMs > 0 && delayMs < 365 * 24 * 60 * 60 * 1000) {
       this.scheduleTimer = setTimeout(() => {
         try {
-
-          // Execute workflow if execution engine is set
-          // ExecutionEngine.execute() will reset regular nodes, but the trigger's resultData
-          // is already set and will be preserved during execution
-          if (this.executionEngine) {
-            // Execute workflow asynchronously but don't wait for it
-            // This allows the trigger to complete immediately
-            this.executionEngine.execute(this.properties.name).catch((error) => {
-              // Don't set error state here - the workflow reset may have already occurred
-              // and we can't transition from Completed to Failed anyway
-              // Just store the error for inspection if needed
-              this.error = error instanceof Error ? error : new Error(String(error))
-              // Note: We don't set state to Failed because:
-              // 1. The trigger is already Completed
-              // 2. The workflow may have been reset, making state transitions invalid
-              // 3. The error is still accessible via this.error for debugging
-            })
-          }
-
+          // activate() will handle workflow execution via executionEngine.execute()
           const executionData = this.getDefaultData()
           this.activate(executionData)
         } catch (error) {

@@ -2,6 +2,7 @@ import { BaseNode } from "../core/base-node"
 import type { NodeProperties, NodeConfiguration, DataRecord, NodeInput, NodeOutput } from "../interfaces"
 import type { ExecutionContext } from "../interfaces/execution-state"
 import { LinkType } from "../types"
+import { httpRequestNodeSchema } from "../schemas/http-request-node-schema"
 
 /**
  * HTTP methods supported by the HTTP Request node
@@ -136,6 +137,7 @@ export class HttpRequestNode extends BaseNode {
    */
   constructor(properties: NodeProperties) {
     super(properties)
+    this.configurationSchema = httpRequestNodeSchema
     this.addInput("input", "data", LinkType.Standard)
     this.addOutput("output", "data", LinkType.Standard)
     this.addOutput("error", "data", LinkType.Standard)

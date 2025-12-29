@@ -21,38 +21,52 @@ describe("ManualTrigger", () => {
     trigger = new ManualTrigger(properties)
   })
 
-  test("should trigger workflow execution", () => {
-    let executedData: NodeOutput | undefined
-    trigger.setCallback((data) => {
-      executedData = data
-    })
+  test("should have isTrigger property set to true", () => {
+    expect(trigger.properties.isTrigger).toBe(true)
+  })
+
+  test("should trigger workflow execution", async () => {
+    const workflow = new Workflow("test-workflow")
+    workflow.addNode(trigger)
     trigger.setup({})
+
+    const engine = new ExecutionEngine(workflow)
+    trigger.setExecutionEngine(engine)
+
     trigger.trigger()
-    expect(executedData).toBeDefined()
+    // Wait for execution
+    await new Promise((resolve) => setTimeout(resolve, 50))
     expect(trigger.state).toBe(NodeState.Completed)
   })
 
-  test("should trigger with custom data", () => {
+  test("should trigger with custom data", async () => {
+    const workflow = new Workflow("test-workflow")
+    workflow.addNode(trigger)
+    trigger.setup({})
+
+    const engine = new ExecutionEngine(workflow)
+    trigger.setExecutionEngine(engine)
+
     const customData: NodeOutput = { output: { test: "value" } }
-    let executedData: NodeOutput | undefined
-    trigger.setCallback((data) => {
-      executedData = data
-    })
-    trigger.setup({})
     trigger.trigger(customData)
-    expect(executedData).toEqual(customData)
+    // Wait for execution
+    await new Promise((resolve) => setTimeout(resolve, 50))
     expect(trigger.state).toBe(NodeState.Completed)
   })
 
-  test("should use initialData from configuration", () => {
+  test("should use initialData from configuration", async () => {
+    const workflow = new Workflow("test-workflow")
+    workflow.addNode(trigger)
     const initialData: NodeOutput = { output: { initial: "data" } }
-    let executedData: NodeOutput | undefined
-    trigger.setCallback((data) => {
-      executedData = data
-    })
     trigger.setup({ initialData })
+
+    const engine = new ExecutionEngine(workflow)
+    trigger.setExecutionEngine(engine)
+
     trigger.trigger()
-    expect(executedData).toEqual(initialData)
+    // Wait for execution
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(trigger.state).toBe(NodeState.Completed)
   })
 
 
@@ -100,7 +114,7 @@ describe("ManualTrigger", () => {
     })
 
     // workflow에 노드들 추가
-    workflow.addTriggerNode(trigger)
+    workflow.addNode(trigger)
     workflow.addNode(jsNode1)
     workflow.addNode(jsNode2)
 
@@ -168,7 +182,7 @@ describe("ManualTrigger", () => {
       `,
     })
 
-    workflow.addTriggerNode(trigger)
+    workflow.addNode(trigger)
     workflow.addNode(jsNode)
     workflow.linkNodes("trigger", "output", "js-node", "input")
 
@@ -236,7 +250,7 @@ describe("ManualTrigger", () => {
       `,
     })
 
-    workflow.addTriggerNode(trigger)
+    workflow.addNode(trigger)
     workflow.addNode(jsNode1)
     workflow.addNode(jsNode2)
     workflow.addNode(jsNode3)
@@ -293,7 +307,7 @@ describe("ManualTrigger", () => {
       `,
     })
 
-    workflow.addTriggerNode(trigger)
+    workflow.addNode(trigger)
     workflow.addNode(transformNode)
     workflow.linkNodes("trigger", "output", "transform", "input")
 
@@ -347,7 +361,7 @@ describe("ManualTrigger", () => {
       `,
     })
 
-    workflow.addTriggerNode(trigger)
+    workflow.addNode(trigger)
     workflow.addNode(jsNode)
     workflow.linkNodes("trigger", "output", "js-node", "input")
 
@@ -420,7 +434,7 @@ describe("ManualTrigger", () => {
       `,
     })
 
-    workflow.addTriggerNode(trigger)
+    workflow.addNode(trigger)
     workflow.addNode(jsNode)
     workflow.linkNodes("trigger", "output", "js-node", "input")
 

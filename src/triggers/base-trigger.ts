@@ -1,5 +1,5 @@
 import { BaseNode } from "../core/base-node"
-import type { NodeOutput } from "../interfaces"
+import type { NodeOutput, NodeProperties } from "../interfaces"
 import type { WorkflowTrigger } from "../interfaces"
 import type { ExecutionContext } from "../interfaces/execution-state"
 import { NodeState } from "../types"
@@ -9,16 +9,28 @@ import type { ExecutionEngine } from "../execution/execution-engine"
 /**
  * Abstract base class for all trigger nodes
  * Triggers are special nodes that initiate workflow execution
+ * In the unified node model, triggers are identified by the isTrigger property
  * Subclasses must implement activate() to define trigger-specific behavior
- * Note: run() here is different from WorkflowNodeBase.run() - it triggers workflow, not node execution
+ * and process() to handle normal node execution when triggered
  */
 export abstract class TriggerNodeBase extends BaseNode implements WorkflowTrigger {
   /** Execution engine for workflow execution */
   protected executionEngine?: ExecutionEngine
 
   /**
+   * Creates a new TriggerNodeBase instance
+   * Sets isTrigger property to true to identify this as a trigger node
+   * @param properties - Node properties (isTrigger will be set to true)
+   */
+  constructor(properties: NodeProperties) {
+    super(properties)
+    // Mark this node as a trigger in the unified model
+    this.properties.isTrigger = true
+  }
+
+  /**
    * Triggers the workflow execution
-   * This method is separate from WorkflowNodeBase.run() as triggers have different semantics
+   * This method initiates workflow execution and then processes the trigger node
    * @param data - Optional initial data to pass to the workflow (port name based)
    * @throws Error if workflow is already executing or trigger is not configured
    */
@@ -45,19 +57,28 @@ export abstract class TriggerNodeBase extends BaseNode implements WorkflowTrigge
   }
 
   /**
-   * Override WorkflowNodeBase.run() to prevent direct execution
-   * Triggers should use trigger() method instead
-   * @param _context - Execution context (not used for triggers)
-   * @returns Never returns (always throws)
-   * @throws Error indicating triggers should use trigger() method
+   * Processes the trigger node execution
+   * In unified model, triggers can be executed like regular nodes
+   * This method is called by the execution engine when the trigger is executed
+   * @param context - Execution context containing input data and state
+   * @returns Promise that resolves to output data (port name based)
    */
-  override async run(_context: ExecutionContext): Promise<NodeOutput> {
-    throw new Error("Triggers should use trigger() method, not WorkflowNodeBase.run()")
+  protected async process(context: ExecutionContext): Promise<NodeOutput> {
+    // For triggers, process() is called after activate() has initiated workflow execution
+    // Return the default data or data from context
+    const outputPortName = this.outputs[0]?.name || "output"
+    if (context.input[outputPortName]) {
+      const inputData = context.input[outputPortName]
+      const normalized = Array.isArray(inputData) ? inputData : [inputData]
+      return { [outputPortName]: normalized.length === 1 ? normalized[0] : normalized }
+    }
+    return this.getDefaultData()
   }
 
   /**
    * Internal method that performs the actual trigger activation
    * Called by trigger() after validation
+   * This should initiate workflow execution and set up the trigger's output data
    * @param data - Initial data for the workflow (port name based)
    */
   protected abstract activate(data: NodeOutput): void

@@ -18,6 +18,8 @@ export interface NodeProperties {
   version: number
   /** Visual position [x, y] in the workflow canvas */
   position: [number, number]
+  /** Whether this node is a trigger node (initiates workflow execution) */
+  isTrigger?: boolean
   /** Whether the node is disabled (skipped during execution) */
   disabled?: boolean
   /** User notes/annotations for the node */
@@ -26,8 +28,8 @@ export interface NodeProperties {
   retryOnFail?: boolean
   /** Maximum number of retry attempts */
   maxRetries?: number
-  /** Wait time in milliseconds between retry attempts */
-  retryDelay?: number
+  /** Wait time in milliseconds between retry attempts (number for fixed delay, or object for exponential backoff) */
+  retryDelay?: number | { baseDelay?: number; maxDelay?: number }
   /** Whether to continue workflow execution if this node fails */
   continueOnFail?: boolean
 }

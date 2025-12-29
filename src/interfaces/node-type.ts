@@ -1,5 +1,6 @@
 import type { Node } from "./node"
 import type { NodeInput, NodeOutput } from "./node-execution-data"
+import type { JsonSchema } from "../schemas/schema-validator"
 
 /**
  * Metadata describing a node type
@@ -22,6 +23,8 @@ export interface NodeTypeMetadata {
 export interface NodeType {
   /** Metadata describing this node type */
   metadata: NodeTypeMetadata
+  /** JSON Schema for node configuration validation */
+  configurationSchema?: JsonSchema
   /**
    * Executes the node with given input data
    * @param node - The node instance to execute

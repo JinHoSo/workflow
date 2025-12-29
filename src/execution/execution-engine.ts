@@ -1,8 +1,18 @@
 import type { Workflow as IWorkflow, Node, NodeInput, NodeOutput, DataRecord } from "../interfaces"
-import type { ExecutionState, ExecutionContext } from "../interfaces/execution-state"
+import type {
+  ExecutionState,
+  ExecutionContext,
+  StatePersistenceHook,
+  NodeExecutionMetadata,
+} from "../interfaces/execution-state"
 import { WorkflowState } from "../interfaces"
 import { NodeState } from "../types"
 import { BaseNode } from "../core/base-node"
+import { buildDependencyGraph, topologicalSort, getIndependentNodes } from "./dag-utils"
+import { executionProtocol } from "../protocols/execution-impl"
+import { errorHandlingProtocol } from "../protocols/error-handling-impl"
+import { createRetryStrategy } from "./retry-strategy"
+import { ExecutionStateManager } from "./execution-state-manager"
 
 /**
  * Execution engine that orchestrates workflow execution
@@ -14,13 +24,19 @@ export class ExecutionEngine {
   private executionState: ExecutionState = {}
   /** Map of node names to their execution promises (for async waiting) */
   private nodePromises: Map<string, Promise<void>> = new Map()
+  /** Centralized state manager */
+  private stateManager: ExecutionStateManager = new ExecutionStateManager()
+  /** Optional state persistence hook */
+  private persistenceHook?: StatePersistenceHook
 
   /**
    * Creates a new ExecutionEngine
    * @param workflow - Workflow to execute
+   * @param persistenceHook - Optional state persistence hook
    */
-  constructor(workflow: IWorkflow) {
+  constructor(workflow: IWorkflow, persistenceHook?: StatePersistenceHook) {
     this.workflow = workflow
+    this.persistenceHook = persistenceHook
   }
 
   /**
@@ -29,6 +45,32 @@ export class ExecutionEngine {
    */
   getWorkflowState(): WorkflowState {
     return this.workflow.state
+  }
+
+  /**
+   * Gets the execution state manager
+   * @returns Execution state manager instance
+   */
+  getStateManager(): ExecutionStateManager {
+    return this.stateManager
+  }
+
+  /**
+   * Gets execution state for a specific node
+   * @param nodeName - Name of the node
+   * @returns Node output data or undefined
+   */
+  getNodeState(nodeName: string): NodeOutput | undefined {
+    return this.stateManager.getNodeState(nodeName)
+  }
+
+  /**
+   * Gets execution metadata for a specific node
+   * @param nodeName - Name of the node
+   * @returns Execution metadata or undefined
+   */
+  getNodeMetadata(nodeName: string): NodeExecutionMetadata | undefined {
+    return this.stateManager.getNodeMetadata(nodeName)
   }
 
   /**
@@ -44,10 +86,14 @@ export class ExecutionEngine {
       throw new Error("Workflow is already executing")
     }
 
-    // Get trigger node to verify it exists (check triggers collection first)
-    const triggerNode = this.workflow.triggers[triggerNodeName] || this.workflow.nodes[triggerNodeName]
+    // Get trigger node to verify it exists (all nodes are in unified collection)
+    const triggerNode = this.workflow.nodes[triggerNodeName]
     if (!triggerNode) {
       throw new Error(`Trigger node ${triggerNodeName} not found`)
+    }
+    // Verify it's actually a trigger node
+    if (!triggerNode.properties.isTrigger) {
+      throw new Error(`Node ${triggerNodeName} is not a trigger node`)
     }
 
     // Reset workflow to clean state before execution
@@ -60,8 +106,23 @@ export class ExecutionEngine {
     // Clear execution state to prevent contamination from previous executions
     this.executionState = {}
     this.nodePromises.clear()
+    this.stateManager.clear()
 
     this.workflow.state = WorkflowState.Running
+
+    // Try to recover state from persistence if available
+    if (this.persistenceHook) {
+      try {
+        const recovered = await this.persistenceHook.recover(this.workflow.id)
+        if (recovered) {
+          this.stateManager.import(recovered)
+          this.executionState = recovered.state
+        }
+      } catch (error) {
+        // Log but don't fail - continue with fresh state
+        console.warn("Failed to recover execution state:", error)
+      }
+    }
 
     try {
       // Initialize execution state with trigger node output
@@ -69,49 +130,55 @@ export class ExecutionEngine {
         this.executionState[triggerNodeName] = triggerNode.getAllResults()
       }
 
+      // Build dependency graph and perform topological sort
+      const dependencyGraph = buildDependencyGraph(this.workflow)
+      const executionLevels = topologicalSort(dependencyGraph)
+
+      // Find which level contains the trigger node
+      let triggerLevelIndex = -1
+      for (let i = 0; i < executionLevels.length; i++) {
+        if (executionLevels[i].includes(triggerNodeName)) {
+          triggerLevelIndex = i
+          break
+        }
+      }
+
+      if (triggerLevelIndex === -1) {
+        throw new Error(`Trigger node ${triggerNodeName} not found in dependency graph`)
+      }
+
+      // Execute nodes level by level, starting from trigger level
       const executedNodes = new Set<string>([triggerNodeName])
-      const queue = this.getConnectedNodes(triggerNodeName)
-      while (queue.length > 0) {
-        const nodeName = queue.shift()
-        if (!nodeName || executedNodes.has(nodeName)) {
+      const maxParallel = this.workflow.settings.maxParallelExecutions ?? 0 // 0 = unlimited
+      const enableParallel = this.workflow.settings.enableParallelExecution ?? true
+
+      for (let levelIndex = triggerLevelIndex; levelIndex < executionLevels.length; levelIndex++) {
+        const level = executionLevels[levelIndex]
+
+        // Filter to only nodes that haven't been executed yet
+        const nodesToExecute = level.filter((nodeName) => !executedNodes.has(nodeName))
+
+        if (nodesToExecute.length === 0) {
           continue
         }
 
-        // Check both nodes and triggers collections (regular nodes only in queue, but check both for safety)
-        const node = this.workflow.nodes[nodeName] || this.workflow.triggers[nodeName]
-        if (!node) {
-          continue
-        }
+        // Identify independent nodes at this level (can execute in parallel)
+        const independentNodes = getIndependentNodes(dependencyGraph, nodesToExecute)
 
-        if (node.properties.disabled) {
-          continue
-        }
-
-        // Wait for all input dependencies to be ready (async support)
-        const context = await this.collectInputDataAndState(nodeName)
-
-        // Check if node has any input data or can run without inputs
-        const hasInputData = Object.keys(context.input).some((portName) => {
-          const portData = context.input[portName]
-          if (portData === undefined) return false
-          const normalized = Array.isArray(portData) ? portData : [portData]
-          return normalized.length > 0
-        })
-
-        // Nodes without inputs can still run (e.g., triggers, nodes that generate data)
-        if (hasInputData || node.inputs.length === 0) {
-          const nodePromise = this.runNode(node, context)
-          this.nodePromises.set(nodeName, nodePromise)
-          await nodePromise
-
-          // Update execution state with node output
-          if (node instanceof BaseNode && node.state === NodeState.Completed) {
-            this.executionState[nodeName] = node.getAllResults()
+        if (enableParallel && independentNodes.length > 1) {
+          // Execute independent nodes in parallel
+          await this.executeNodesInParallel(independentNodes, executedNodes, maxParallel)
+        } else {
+          // Execute nodes sequentially
+          for (const nodeName of nodesToExecute) {
+            await this.executeNodeIfReady(nodeName, executedNodes)
           }
+        }
 
-          executedNodes.add(nodeName)
-          const connected = this.getConnectedNodes(nodeName)
-          queue.push(...connected)
+        // Execute remaining nodes at this level sequentially (those that depend on other nodes in the same level)
+        const remainingNodes = nodesToExecute.filter((nodeName) => !executedNodes.has(nodeName))
+        for (const nodeName of remainingNodes) {
+          await this.executeNodeIfReady(nodeName, executedNodes)
         }
       }
 
@@ -119,6 +186,160 @@ export class ExecutionEngine {
     } catch (error) {
       this.workflow.state = WorkflowState.Failed
       throw error
+    }
+  }
+
+  /**
+   * Executes a node if it's ready (has all dependencies satisfied)
+   * Supports retry mechanism if configured
+   * @param nodeName - Name of the node to execute
+   * @param executedNodes - Set of already executed nodes
+   */
+  private async executeNodeIfReady(nodeName: string, executedNodes: Set<string>): Promise<void> {
+    const node = this.workflow.nodes[nodeName]
+    if (!node) {
+      return
+    }
+
+    if (node.properties.disabled) {
+      executedNodes.add(nodeName)
+      return
+    }
+
+    // Wait for all input dependencies to be ready
+    const context = await this.collectInputDataAndState(nodeName)
+
+    // Check if node has any input data or can run without inputs
+    const hasInputData = Object.keys(context.input).some((portName) => {
+      const portData = context.input[portName]
+      if (portData === undefined) return false
+      const normalized = Array.isArray(portData) ? portData : [portData]
+      return normalized.length > 0
+    })
+
+      // Nodes without inputs can still run (e.g., triggers, nodes that generate data)
+      if (hasInputData || node.inputs.length === 0) {
+        // Record execution start
+        this.stateManager.recordNodeStart(nodeName)
+
+        // Execute with retry if configured
+        if (node.properties.retryOnFail && node.properties.maxRetries) {
+          await this.runNodeWithRetry(node, context, nodeName)
+        } else {
+          const nodePromise = this.runNode(node, context)
+          this.nodePromises.set(nodeName, nodePromise)
+          await nodePromise
+        }
+
+        // Update execution state with node output
+        if (node instanceof BaseNode) {
+          const finalState = node.state
+          this.stateManager.recordNodeEnd(nodeName, finalState)
+          if (finalState === NodeState.Completed) {
+            const output = node.getAllResults()
+            this.executionState[nodeName] = output
+            this.stateManager.setNodeState(nodeName, output)
+          }
+        }
+
+        executedNodes.add(nodeName)
+
+        // Persist state if hook is available
+        if (this.persistenceHook) {
+          try {
+            const exported = this.stateManager.export()
+            await this.persistenceHook.persist(this.workflow.id, exported.state, exported.metadata)
+          } catch (error) {
+            // Log but don't fail execution
+            console.warn("Failed to persist execution state:", error)
+          }
+        }
+      }
+  }
+
+  /**
+   * Executes a node with retry mechanism
+   * @param node - Node to execute
+   * @param context - Execution context
+   * @param nodeName - Name of the node (for promise tracking)
+   */
+  private async runNodeWithRetry(node: Node, context: ExecutionContext, nodeName: string): Promise<void> {
+    const maxRetries = node.properties.maxRetries || 3
+    const retryStrategy = createRetryStrategy(node.properties.retryDelay)
+    let lastError: Error | undefined
+
+    // Total attempts = 1 initial + maxRetries retries
+    for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+      try {
+        // Prepare node for retry (except first attempt)
+        // Use stop() to reset state to Idle and clear error, but preserve internal node state
+        // This allows nodes to maintain internal state (like attempt counters) across retries
+        if (attempt > 1 && node instanceof BaseNode) {
+          node.stop()
+        }
+
+        const nodePromise = this.runNode(node, context)
+        this.nodePromises.set(nodeName, nodePromise)
+        await nodePromise
+
+        // Success - return
+        return
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error))
+
+        // Check if we should retry (if this is not the last attempt)
+        // After attempt N fails, we can retry if N < maxRetries + 1
+        // This means we check if there are more attempts remaining
+        if (attempt >= maxRetries + 1) {
+          // No more retries - throw the error
+          throw lastError
+        }
+
+        // Calculate delay and wait before retry
+        // Use attempt number for delay calculation (1-based)
+        const delay = retryStrategy.calculateDelay(attempt)
+        await new Promise((resolve) => setTimeout(resolve, delay))
+      }
+    }
+
+    // If we get here, all retries failed
+    if (lastError) {
+      throw lastError
+    }
+  }
+
+  /**
+   * Executes multiple nodes in parallel with optional concurrency limit
+   * @param nodeNames - Array of node names to execute
+   * @param executedNodes - Set of already executed nodes
+   * @param maxParallel - Maximum number of concurrent executions (0 = unlimited)
+   */
+  private async executeNodesInParallel(
+    nodeNames: string[],
+    executedNodes: Set<string>,
+    maxParallel: number,
+  ): Promise<void> {
+    if (maxParallel > 0 && nodeNames.length > maxParallel) {
+      // Execute in batches with concurrency limit
+      for (let i = 0; i < nodeNames.length; i += maxParallel) {
+        const batch = nodeNames.slice(i, i + maxParallel)
+        await Promise.all(
+          batch.map(async (nodeName) => {
+            if (!executedNodes.has(nodeName)) {
+              await this.executeNodeIfReady(nodeName, executedNodes)
+            }
+          }),
+        )
+      }
+    } else {
+      // Execute all nodes in parallel (unlimited or within limit)
+      await Promise.all(
+        nodeNames.map(async (nodeName) => {
+          if (!executedNodes.has(nodeName)) {
+            await this.executeNodeIfReady(nodeName, executedNodes)
+          }
+        }),
+      )
     }
   }
 
@@ -139,13 +360,18 @@ export class ExecutionEngine {
     }
 
     try {
-      if (node instanceof BaseNode) {
-        await node.run(context)
-      }
+      // Use execution protocol for consistent execution
+      await executionProtocol.executeNode({
+        node,
+        inputData: context.input,
+        state: context.state,
+        workflowId: this.workflow.id,
+      })
     } catch (error) {
-      node.error = error instanceof Error ? error : new Error(String(error))
-      node.state = NodeState.Failed
-      if (!node.properties.continueOnFail) {
+      const err = error instanceof Error ? error : new Error(String(error))
+      // Use error handling protocol for consistent error handling
+      errorHandlingProtocol.handleError(node, err)
+      if (errorHandlingProtocol.shouldStopExecution(node, err)) {
         throw error
       }
     }
@@ -174,8 +400,8 @@ export class ExecutionEngine {
       // Wait for all source nodes to complete by awaiting their promises
       await Promise.all(
         Array.from(sourceNodeNames).map(async (sourceNodeName) => {
-          // Check both nodes and triggers collections
-          const sourceNode = this.workflow.nodes[sourceNodeName] || this.workflow.triggers[sourceNodeName]
+          // Get source node from unified collection
+          const sourceNode = this.workflow.nodes[sourceNodeName]
           if (!sourceNode) return
 
           // If node is already completed, no need to wait
@@ -238,13 +464,19 @@ export class ExecutionEngine {
         const portData: DataRecord[] = []
 
         for (const link of inputLinks) {
-          // Check both nodes and triggers collections
-          const sourceNode = this.workflow.nodes[link.targetNode] || this.workflow.triggers[link.targetNode]
-          if (sourceNode && sourceNode.state === NodeState.Completed) {
-            const sourceOutput = this.getNodeOutput(sourceNode, link.outputPortName)
-            // Normalize to array
-            const normalized = Array.isArray(sourceOutput) ? sourceOutput : [sourceOutput]
-            portData.push(...normalized)
+          // Get source node from unified collection
+          const sourceNode = this.workflow.nodes[link.targetNode]
+          if (sourceNode) {
+            // Check if node is completed or if output is available in execution state
+            // (execution state is used for trigger nodes initialized in execute())
+            const hasOutput = sourceNode.state === NodeState.Completed ||
+                             this.executionState[link.targetNode] !== undefined
+            if (hasOutput) {
+              const sourceOutput = this.getNodeOutput(sourceNode, link.outputPortName)
+              // Normalize to array
+              const normalized = Array.isArray(sourceOutput) ? sourceOutput : [sourceOutput]
+              portData.push(...normalized)
+            }
           }
         }
 
@@ -255,16 +487,41 @@ export class ExecutionEngine {
       }
     }
 
+    // Merge executionState and stateManager state to ensure all completed nodes are available
+    // stateManager is the source of truth for node states
+    const stateManagerState = this.stateManager.getState()
+    const mergedState = { ...this.executionState, ...stateManagerState }
+
+    // Performance optimization: Only check completed nodes directly if they're not already in mergedState
+    // This avoids unnecessary iteration over all nodes when executionState/stateManager already have the data
+    // We only need to check nodes that are completed but missing from mergedState (race condition fallback)
+    const mergedStateKeys = new Set(Object.keys(mergedState))
+    for (const [nodeKey, node] of Object.entries(this.workflow.nodes)) {
+      // Skip if already in mergedState (most common case)
+      if (mergedStateKeys.has(nodeKey)) {
+        continue
+      }
+
+      // Only check completed nodes that are missing from mergedState
+      // This handles edge cases where a node completed but state wasn't synced yet
+      if (node instanceof BaseNode && node.state === NodeState.Completed) {
+        const nodeOutput = node.getAllResults()
+        // Include completed nodes in state, even if output appears empty
+        // This allows nodes to reference completed nodes via state() function
+        mergedState[nodeKey] = nodeOutput || {}
+      }
+    }
+
     return {
       input: inputData,
-      state: { ...this.executionState },
+      state: mergedState,
     }
   }
 
 
   /**
    * Gets output data from a node
-   * Uses mock data if available, otherwise gets from node output
+   * Uses mock data if available, otherwise gets from node output or execution state
    * @param node - Node to get output from
    * @param outputPortName - Name of the output port
    * @returns Data for the output port (single item or array)
@@ -275,6 +532,16 @@ export class ExecutionEngine {
       return mockOutput[outputPortName] || []
     }
 
+    // Check execution state first (for trigger nodes initialized in execute())
+    const nodeName = node.properties.name
+    if (this.executionState[nodeName]) {
+      const nodeOutput = this.executionState[nodeName]
+      const portOutput = nodeOutput[outputPortName]
+      if (portOutput !== undefined) {
+        return portOutput
+      }
+    }
+
     if (node instanceof BaseNode) {
       return node.getResult(outputPortName)
     }
@@ -282,25 +549,4 @@ export class ExecutionEngine {
     return []
   }
 
-  /**
-   * Gets all nodes connected to a source node's outputs
-   * @param nodeName - Name of the source node
-   * @returns Array of connected node names
-   */
-  private getConnectedNodes(nodeName: string): string[] {
-    const links = this.workflow.linksBySource[nodeName]
-    if (!links) {
-      return []
-    }
-
-    const connected: string[] = []
-    for (const inputName in links) {
-      for (const link of links[inputName]) {
-        if (!connected.includes(link.targetNode)) {
-          connected.push(link.targetNode)
-        }
-      }
-    }
-    return connected
-  }
 }

@@ -242,7 +242,7 @@ describe("Workflow", () => {
       node1.addInput("input", "data")
       node1.addOutput("output", "data")
 
-      workflow.addTriggerNode(trigger)
+      workflow.addNode(trigger)
       workflow.addNode(node1)
       workflow.linkNodes("manual-trigger", "output", "node1", "input")
 
@@ -285,7 +285,7 @@ describe("Workflow", () => {
       node1.addInput("input", "data")
       node1.addOutput("output", "data")
 
-      workflow.addTriggerNode(trigger)
+      workflow.addNode(trigger)
       workflow.addNode(node1)
       workflow.linkNodes("manual-trigger", "output", "node1", "input")
 
@@ -365,7 +365,7 @@ describe("Workflow", () => {
       node1.addInput("input", "data")
       node1.addOutput("output", "data")
 
-      workflow.addTriggerNode(trigger)
+      workflow.addNode(trigger)
       workflow.addNode(node1)
       workflow.linkNodes("schedule-trigger", "output", "node1", "input")
 
@@ -468,7 +468,7 @@ describe("Workflow", () => {
       node1.addInput("input", "data")
       node1.addOutput("output", "data")
 
-      workflow.addTriggerNode(trigger)
+      workflow.addNode(trigger)
       workflow.addNode(node1)
       workflow.linkNodes("schedule-trigger", "output", "node1", "input")
 

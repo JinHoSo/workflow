@@ -5,7 +5,6 @@ import type { DataRecord } from "./node-execution-data"
 import type { NodeOutput } from "./node-execution-data"
 import type { NodeProperties, NodeConfiguration } from "./node"
 import type { InputPort, OutputPort } from "./port"
-import type { WorkflowTrigger } from "./trigger"
 
 /**
  * Execution state of a workflow
@@ -27,6 +26,10 @@ export enum WorkflowState {
 export interface WorkflowSettings {
   /** Timezone for workflow execution (e.g., "America/New_York") */
   timezone?: string
+  /** Maximum number of nodes that can execute in parallel (0 = unlimited, default: unlimited) */
+  maxParallelExecutions?: number
+  /** Whether parallel execution is enabled (default: true) */
+  enableParallelExecution?: boolean
   /** Additional custom settings */
   [key: string]: string | number | boolean | undefined
 }
@@ -88,16 +91,15 @@ export type NodeFactory = (serializedNode: SerializedNode) => Node
 /**
  * Core workflow interface
  * Represents a collection of connected nodes forming an executable pipeline
+ * All nodes, including triggers, are stored in a unified collection
  */
 export interface Workflow {
   /** Unique identifier for the workflow */
   id: string
   /** Optional name of the workflow */
   name?: string
-  /** Collection of regular nodes keyed by node name */
+  /** Unified collection of all nodes (regular nodes and triggers) keyed by node name */
   nodes: { [nodeName: string]: Node }
-  /** Collection of trigger nodes keyed by node name */
-  triggers: { [nodeName: string]: WorkflowTrigger }
   /** Links indexed by source node (for finding outputs) */
   linksBySource: WorkflowLinks
   /** Links indexed by destination node (for finding inputs) */
@@ -113,15 +115,10 @@ export interface Workflow {
   /** Current execution state of the workflow */
   state: WorkflowState
   /**
-   * Adds a regular node to the workflow
-   * @param node - Node instance to add
-   * @throws Error if node is a trigger (use addTriggerNode() instead)
+   * Adds a node to the workflow (regular node or trigger)
+   * Triggers are identified by the isTrigger property in their properties
+   * @param node - Node instance to add (can be regular node or trigger)
    */
   addNode(node: Node): void
-  /**
-   * Adds a trigger node to the workflow
-   * @param trigger - Trigger node instance to add
-   */
-  addTriggerNode(trigger: WorkflowTrigger): void
 }
 

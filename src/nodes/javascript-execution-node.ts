@@ -2,6 +2,7 @@ import { BaseNode } from "../core/base-node"
 import type { NodeProperties, NodeConfiguration, DataRecord, NodeInput, NodeOutput } from "../interfaces"
 import type { ExecutionContext } from "../interfaces/execution-state"
 import { LinkType } from "../types"
+import { javascriptNodeSchema } from "../schemas/javascript-node-schema"
 
 /**
  * Node that executes user-provided JavaScript code
@@ -20,6 +21,7 @@ export class JavaScriptNode extends BaseNode {
    */
   constructor(properties: NodeProperties) {
     super(properties)
+    this.configurationSchema = javascriptNodeSchema
     this.addInput("input", "data", LinkType.Standard)
     this.addOutput("output", "data", LinkType.Standard)
   }

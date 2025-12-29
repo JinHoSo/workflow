@@ -9,8 +9,8 @@ import type {
   WorkflowExportData,
   SerializedNode,
   NodeFactory,
-  WorkflowTrigger,
 } from "../interfaces"
+import { nodeFactory as defaultNodeFactory, NodeFactory as NodeFactoryClass } from "./node-factory"
 import { WorkflowState } from "../interfaces"
 import { LinkType } from "../types"
 import { NodeTypeRegistryImpl } from "./node-type-registry"
@@ -24,7 +24,6 @@ export class Workflow implements IWorkflow {
   id: string
   name?: string
   nodes: { [nodeName: string]: Node }
-  triggers: { [nodeName: string]: WorkflowTrigger }
   linksBySource: WorkflowLinks
   linksByTarget: WorkflowLinks
   nodeTypeRegistry: NodeTypeRegistry
@@ -58,7 +57,6 @@ export class Workflow implements IWorkflow {
     this.name = name
     this.nodeTypeRegistry = nodeTypeRegistry ?? new NodeTypeRegistryImpl()
     this.nodes = {}
-    this.triggers = {}
     this.linksBySource = links
     this.linksByTarget = mapLinksByTarget(links)
     this.staticData = staticData
@@ -67,47 +65,26 @@ export class Workflow implements IWorkflow {
     this.state = WorkflowState.Idle
 
     for (const node of nodes) {
-      // Check if node is a trigger and add to appropriate collection
-      if ("trigger" in node && typeof node.trigger === "function") {
-        this.addTriggerNode(node as WorkflowTrigger)
-      } else {
-        this.addNode(node)
-      }
+      this.addNode(node)
     }
   }
 
   /**
-   * Adds a regular node to the workflow
-   * @param node - Node instance to add
-   * @throws Error if node is a trigger (use addTriggerNode() instead)
+   * Adds a node to the workflow (regular node or trigger)
+   * All nodes, including triggers, are stored in the unified nodes collection
+   * Triggers are identified by the isTrigger property in their properties
+   * @param node - Node instance to add (can be regular node or trigger)
    */
   addNode(node: Node): void {
-    // Reject trigger nodes - they must be added via addTriggerNode()
-    if ("trigger" in node && typeof node.trigger === "function") {
-      throw new Error(
-        `Cannot add trigger node via addNode(). Use addTriggerNode() instead for node: ${node.properties.name}`,
-      )
-    }
     this.nodes[node.properties.name] = node
   }
 
   /**
-   * Adds a trigger node to the workflow
-   * @param trigger - Trigger node instance to add
-   */
-  addTriggerNode(trigger: WorkflowTrigger): void {
-    this.triggers[trigger.properties.name] = trigger
-  }
-
-  /**
    * Removes a node from the workflow and cleans up all its links
-   * Checks both regular nodes and trigger nodes
    * @param nodeName - Name of the node to remove
    */
   removeNode(nodeName: string): void {
-    // Remove from regular nodes or triggers
     delete this.nodes[nodeName]
-    delete this.triggers[nodeName]
     delete this.linksBySource[nodeName]
     for (const sourceNode in this.linksBySource) {
       const links = this.linksBySource[sourceNode]
@@ -135,9 +112,8 @@ export class Workflow implements IWorkflow {
     targetInputName: string,
     linkType: LinkType = LinkType.Standard,
   ): void {
-    // Check both nodes and triggers collections
-    const sourceNode = this.nodes[sourceNodeName] || this.triggers[sourceNodeName]
-    const targetNode = this.nodes[targetNodeName] || this.triggers[targetNodeName]
+    const sourceNode = this.nodes[sourceNodeName]
+    const targetNode = this.nodes[targetNodeName]
 
     if (!sourceNode || !targetNode) {
       throw new Error("Source or target node not found")
@@ -229,14 +205,17 @@ export class Workflow implements IWorkflow {
    */
   reset(): void {
     this.state = WorkflowState.Idle
-    // Reset regular nodes only - triggers are stored separately and preserved
+    // Reset regular nodes only - triggers are identified by isTrigger property and preserved
     for (const nodeName in this.nodes) {
       const node = this.nodes[nodeName]
+      // Skip trigger nodes - they maintain their state and configuration
+      if (node.properties.isTrigger) {
+        continue
+      }
       if ("reset" in node && typeof node.reset === "function") {
         node.reset()
       }
     }
-    // Trigger nodes are not reset - they maintain their state and configuration
   }
 
   /**
@@ -264,7 +243,7 @@ export class Workflow implements IWorkflow {
    */
   private serializeNodes(): SerializedNode[] {
     const serializedNodes: SerializedNode[] = []
-    // Serialize regular nodes
+    // Serialize all nodes (including triggers) from unified collection
     for (const nodeName in this.nodes) {
       const node = this.nodes[nodeName]
       serializedNodes.push({
@@ -273,17 +252,6 @@ export class Workflow implements IWorkflow {
         inputs: node.inputs,
         outputs: node.outputs,
         annotation: node.annotation,
-      })
-    }
-    // Serialize trigger nodes
-    for (const nodeName in this.triggers) {
-      const trigger = this.triggers[nodeName]
-      serializedNodes.push({
-        properties: trigger.properties,
-        config: trigger.config,
-        inputs: trigger.inputs,
-        outputs: trigger.outputs,
-        annotation: trigger.annotation,
       })
     }
     return serializedNodes
@@ -300,7 +268,7 @@ export class Workflow implements IWorkflow {
    */
   static import(
     json: string,
-    nodeFactory: NodeFactory,
+    nodeFactoryFn?: NodeFactory | NodeFactoryClass | ((serializedNode: SerializedNode) => Node),
     nodeTypeRegistry?: NodeTypeRegistry,
   ): Workflow {
     let exportData: WorkflowExportData
@@ -318,11 +286,28 @@ export class Workflow implements IWorkflow {
       Workflow.validateNodeTypes(exportData.nodes, nodeTypeRegistry)
     }
 
-    // Reconstruct nodes
+    // Reconstruct nodes using factory
     const nodes: Node[] = []
-    for (const serializedNode of exportData.nodes) {
-      const node = nodeFactory(serializedNode)
-      nodes.push(node)
+    if (nodeFactoryFn) {
+      // Use provided factory (either function or NodeFactory instance)
+      if (nodeFactoryFn instanceof NodeFactoryClass) {
+        // NodeFactory instance
+        for (const serializedNode of exportData.nodes) {
+          nodes.push(nodeFactoryFn.create(serializedNode))
+        }
+      } else if (typeof nodeFactoryFn === "function") {
+        // Plain function
+        for (const serializedNode of exportData.nodes) {
+          nodes.push(nodeFactoryFn(serializedNode))
+        }
+      } else {
+        throw new Error("Invalid node factory: must be a function or NodeFactory instance")
+      }
+    } else {
+      // Use default factory
+      for (const serializedNode of exportData.nodes) {
+        nodes.push(defaultNodeFactory.create(serializedNode))
+      }
     }
 
     // Create workflow instance
@@ -339,8 +324,7 @@ export class Workflow implements IWorkflow {
 
     // Restore node configuration, ports, and annotation
     for (const serializedNode of exportData.nodes) {
-      // Check both nodes and triggers collections
-      const node = workflow.nodes[serializedNode.properties.name] || workflow.triggers[serializedNode.properties.name]
+      const node = workflow.nodes[serializedNode.properties.name]
       if (node) {
         // Restore ports (clear existing and add from serialized data)
         if ("inputs" in node && Array.isArray(node.inputs)) {

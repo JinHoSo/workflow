@@ -96,7 +96,7 @@ describe("ExecutionEngine - Async Support", () => {
       `,
     })
 
-    workflow.addTriggerNode(trigger)
+    workflow.addNode(trigger)
     workflow.addNode(asyncNode)
     workflow.addNode(syncNode)
     workflow.addNode(finalNode)
@@ -152,6 +152,7 @@ describe("ExecutionEngine - Async Support", () => {
       version: 1,
       position: [0, 0],
     })
+    trigger.setup({})
 
     const node1 = new JavaScriptNode({
       id: "node-1",
@@ -187,7 +188,7 @@ describe("ExecutionEngine - Async Support", () => {
       `,
     })
 
-    workflow.addTriggerNode(trigger)
+    workflow.addNode(trigger)
     workflow.addNode(node1)
     workflow.addNode(node2)
     workflow.addNode(node3)
@@ -197,10 +198,6 @@ describe("ExecutionEngine - Async Support", () => {
     workflow.linkNodes("node1", "output", "node2", "input")
     workflow.linkNodes("node2", "output", "node3", "input")
 
-    trigger.setup({})
-    node1.setup({ code: "return { value: 10 }" })
-    node2.setup({ code: "return { value: input().value * 2 }" })
-    node3.setup({ code: node3.config.code as string })
 
     const engine = new ExecutionEngine(workflow)
     trigger.setExecutionEngine(engine)
@@ -273,7 +270,7 @@ describe("ExecutionEngine - Async Support", () => {
       `,
     })
 
-    workflow.addTriggerNode(trigger)
+    workflow.addNode(trigger)
     workflow.addNode(asyncNode1)
     workflow.addNode(asyncNode2)
     workflow.addNode(mergeNode)

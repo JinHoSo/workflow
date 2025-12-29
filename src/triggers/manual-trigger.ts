@@ -5,6 +5,7 @@ import type { ExecutionEngine } from "../execution/execution-engine"
 import { LinkType } from "../types"
 import { NodeState } from "../types"
 import { WorkflowState } from "../interfaces"
+import { manualTriggerSchema } from "../schemas/manual-trigger-schema"
 
 /**
  * Manual trigger node that allows programmatic workflow execution
@@ -18,7 +19,8 @@ export class ManualTrigger extends TriggerNodeBase {
    * @param properties - Node properties
    */
   constructor(properties: NodeProperties) {
-    super(properties)
+    super({ ...properties, isTrigger: true })
+    this.configurationSchema = manualTriggerSchema
     this.addOutput("output", "data", LinkType.Standard)
   }
 
@@ -84,15 +86,12 @@ export class ManualTrigger extends TriggerNodeBase {
     if (this.executionEngine) {
       // Execute workflow asynchronously but don't wait for it
       // This allows the trigger to complete immediately
+      // Note: ExecutionEngine.execute() will set workflow state to Failed on error
       this.executionEngine.execute(this.properties.name).catch((error) => {
-        // Don't set error state here - the workflow reset may have already occurred
-        // and we can't transition from Completed to Failed anyway
-        // Just store the error for inspection if needed
+        // Store the error for inspection
         this.error = error instanceof Error ? error : new Error(String(error))
-        // Note: We don't set state to Failed because:
-        // 1. The trigger is already Completed
-        // 2. The workflow may have been reset, making state transitions invalid
-        // 3. The error is still accessible via this.error for debugging
+        // ExecutionEngine.execute() already sets workflow state to Failed on error,
+        // so we don't need to set it here
       })
     } else if (this.workflowCallback) {
       // Fallback to callback for backward compatibility
@@ -101,11 +100,24 @@ export class ManualTrigger extends TriggerNodeBase {
   }
 
   /**
-   * Internal processing method (required by WorkflowNodeBase)
-   * @param context - Execution context (not used for triggers)
-   * @returns Promise that resolves to input data as-is
+   * Internal processing method (required by BaseNode)
+   * For triggers, this processes the trigger node execution after activation
+   * @param context - Execution context containing input data and state
+   * @returns Promise that resolves to output data (port name based)
    */
   protected override async process(context: ExecutionContext): Promise<NodeOutput> {
-    return context.input
+    // For manual triggers, return the result data that was set during activate()
+    // If resultData is already set (from activate()), use it
+    if (Object.keys(this.resultData).length > 0) {
+      return this.resultData
+    }
+    // Otherwise, return input data or default data
+    const outputPortName = this.outputs[0]?.name || "output"
+    if (context.input[outputPortName]) {
+      const inputData = context.input[outputPortName]
+      const normalized = Array.isArray(inputData) ? inputData : [inputData]
+      return { [outputPortName]: normalized.length === 1 ? normalized[0] : normalized }
+    }
+    return this.getDefaultData()
   }
 }
