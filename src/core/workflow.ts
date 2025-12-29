@@ -5,7 +5,10 @@ import type {
   NodeTypeRegistry,
   DataRecord,
   WorkflowSettings,
-  PinData,
+  MockData,
+  WorkflowExportData,
+  SerializedNode,
+  NodeFactory,
 } from "../interfaces"
 import { WorkflowState } from "../interfaces"
 import { LinkType } from "../types"
@@ -25,7 +28,7 @@ export class Workflow implements IWorkflow {
   nodeTypeRegistry: NodeTypeRegistry
   staticData: DataRecord
   settings: WorkflowSettings
-  pinData?: PinData
+  mockData?: MockData
   state: WorkflowState
 
   /**
@@ -37,7 +40,7 @@ export class Workflow implements IWorkflow {
    * @param links - Initial links between nodes
    * @param staticData - Initial static data
    * @param settings - Workflow settings
-   * @param pinData - Pin data for testing
+   * @param mockData - Mock data for testing
    */
   constructor(
     id: string,
@@ -47,7 +50,7 @@ export class Workflow implements IWorkflow {
     links: WorkflowLinks = {},
     staticData: DataRecord = {},
     settings: WorkflowSettings = {},
-    pinData?: PinData,
+    mockData?: MockData,
   ) {
     this.id = id
     this.name = name
@@ -57,7 +60,7 @@ export class Workflow implements IWorkflow {
     this.linksByTarget = mapLinksByTarget(links)
     this.staticData = staticData
     this.settings = settings
-    this.pinData = pinData
+    this.mockData = mockData
     this.state = WorkflowState.Idle
 
     for (const node of nodes) {
@@ -166,12 +169,12 @@ export class Workflow implements IWorkflow {
   }
 
   /**
-   * Sets pin data for testing
-   * Pin data overrides node outputs during execution
-   * @param pinData - Pin data indexed by node name
+   * Sets mock data for testing
+   * Mock data overrides node outputs during execution
+   * @param mockData - Mock data indexed by node name
    */
-  setPinData(pinData?: PinData): void {
-    this.pinData = pinData
+  setMockData(mockData?: MockData): void {
+    this.mockData = mockData
   }
 
   /**
@@ -202,6 +205,218 @@ export class Workflow implements IWorkflow {
       const node = this.nodes[nodeName]
       if ("reset" in node && typeof node.reset === "function") {
         node.reset()
+      }
+    }
+  }
+
+  /**
+   * Exports the workflow to JSON format
+   * Serializes all workflow data (nodes, links, settings, staticData, mockData)
+   * @returns JSON string representation of the workflow
+   */
+  export(): string {
+    const exportData: WorkflowExportData = {
+      version: 1,
+      id: this.id,
+      name: this.name,
+      nodes: this.serializeNodes(),
+      linksBySource: this.linksBySource,
+      settings: this.settings,
+      staticData: this.staticData,
+      mockData: this.mockData,
+    }
+    return JSON.stringify(exportData, null, 2)
+  }
+
+  /**
+   * Serializes all nodes in the workflow
+   * @returns Array of serialized node data
+   */
+  private serializeNodes(): SerializedNode[] {
+    const serializedNodes: SerializedNode[] = []
+    for (const nodeName in this.nodes) {
+      const node = this.nodes[nodeName]
+      serializedNodes.push({
+        properties: node.properties,
+        config: node.config,
+        inputs: node.inputs,
+        outputs: node.outputs,
+        annotation: node.annotation,
+      })
+    }
+    return serializedNodes
+  }
+
+  /**
+   * Imports a workflow from JSON format
+   * Creates a new Workflow instance from serialized data
+   * @param json - JSON string representation of the workflow
+   * @param nodeFactory - Factory function to create node instances from serialized data
+   * @param nodeTypeRegistry - Optional node type registry (creates new one if not provided)
+   * @returns New Workflow instance
+   * @throws Error if JSON is invalid, validation fails, or node types are missing
+   */
+  static import(
+    json: string,
+    nodeFactory: NodeFactory,
+    nodeTypeRegistry?: NodeTypeRegistry,
+  ): Workflow {
+    let exportData: WorkflowExportData
+    try {
+      exportData = JSON.parse(json)
+    } catch (error) {
+      throw new Error(`Invalid JSON format: ${error instanceof Error ? error.message : String(error)}`)
+    }
+
+    // Validate export data structure
+    Workflow.validateImportData(exportData)
+
+    // Validate node types exist (if registry provided)
+    if (nodeTypeRegistry) {
+      Workflow.validateNodeTypes(exportData.nodes, nodeTypeRegistry)
+    }
+
+    // Reconstruct nodes
+    const nodes: WorkflowNode[] = []
+    for (const serializedNode of exportData.nodes) {
+      const node = nodeFactory(serializedNode)
+      nodes.push(node)
+    }
+
+    // Create workflow instance
+    const workflow = new Workflow(
+      exportData.id,
+      nodeTypeRegistry,
+      exportData.name,
+      nodes,
+      exportData.linksBySource,
+      exportData.staticData,
+      exportData.settings,
+      exportData.mockData,
+    )
+
+    // Restore node configuration, ports, and annotation
+    for (const serializedNode of exportData.nodes) {
+      const node = workflow.nodes[serializedNode.properties.name]
+      if (node) {
+        // Restore ports (clear existing and add from serialized data)
+        if ("inputs" in node && Array.isArray(node.inputs)) {
+          node.inputs.length = 0
+          for (const inputPort of serializedNode.inputs) {
+            if ("addInput" in node && typeof node.addInput === "function") {
+              node.addInput(inputPort.name, inputPort.dataType, inputPort.linkType)
+            }
+          }
+        }
+        if ("outputs" in node && Array.isArray(node.outputs)) {
+          node.outputs.length = 0
+          for (const outputPort of serializedNode.outputs) {
+            if ("addOutput" in node && typeof node.addOutput === "function") {
+              node.addOutput(outputPort.name, outputPort.dataType, outputPort.linkType)
+            }
+          }
+        }
+        // Restore configuration (nodes extend WorkflowNodeBase which has setup method)
+        if ("setup" in node && typeof node.setup === "function") {
+          node.setup(serializedNode.config)
+        }
+        // Restore annotation if present
+        if (serializedNode.annotation && "setAnnotation" in node && typeof node.setAnnotation === "function") {
+          node.setAnnotation(serializedNode.annotation)
+        }
+      }
+    }
+
+    // Validate links reference existing nodes
+    Workflow.validateLinks(exportData.linksBySource, exportData.nodes)
+
+    return workflow
+  }
+
+  /**
+   * Validates imported workflow data structure
+   * @param data - Import data to validate
+   * @throws Error if validation fails
+   */
+  private static validateImportData(data: unknown): asserts data is WorkflowExportData {
+    if (typeof data !== "object" || data === null) {
+      throw new Error("Import data must be an object")
+    }
+
+    const exportData = data as Partial<WorkflowExportData>
+
+    if (typeof exportData.version !== "number") {
+      throw new Error("Missing or invalid version field")
+    }
+
+    if (exportData.version !== 1) {
+      throw new Error(`Unsupported export format version: ${exportData.version}`)
+    }
+
+    if (typeof exportData.id !== "string") {
+      throw new Error("Missing or invalid id field")
+    }
+
+    if (!Array.isArray(exportData.nodes)) {
+      throw new Error("Missing or invalid nodes array")
+    }
+
+    if (typeof exportData.linksBySource !== "object" || exportData.linksBySource === null) {
+      throw new Error("Missing or invalid linksBySource field")
+    }
+
+    if (typeof exportData.settings !== "object" || exportData.settings === null) {
+      throw new Error("Missing or invalid settings field")
+    }
+
+    if (typeof exportData.staticData !== "object" || exportData.staticData === null) {
+      throw new Error("Missing or invalid staticData field")
+    }
+  }
+
+  /**
+   * Validates that all node types exist in the registry
+   * @param nodes - Serialized nodes to validate
+   * @param registry - Node type registry
+   * @throws Error if any node types are missing
+   */
+  private static validateNodeTypes(nodes: SerializedNode[], registry: NodeTypeRegistry): void {
+    const missingTypes: string[] = []
+    for (const node of nodes) {
+      const nodeType = registry.get(node.properties.nodeType, node.properties.version)
+      if (!nodeType) {
+        missingTypes.push(`${node.properties.nodeType}@${node.properties.version}`)
+      }
+    }
+    if (missingTypes.length > 0) {
+      throw new Error(
+        `Missing node types in registry: ${missingTypes.join(", ")}. Please ensure all node types are registered before importing.`,
+      )
+    }
+  }
+
+  /**
+   * Validates that all link references point to existing nodes
+   * @param links - Links to validate
+   * @param nodes - Serialized nodes
+   * @throws Error if any link references are invalid
+   */
+  private static validateLinks(links: WorkflowLinks, nodes: SerializedNode[]): void {
+    const nodeNames = new Set(nodes.map((n) => n.properties.name))
+
+    for (const sourceNodeName in links) {
+      if (!nodeNames.has(sourceNodeName)) {
+        throw new Error(`Link references non-existent source node: ${sourceNodeName}`)
+      }
+
+      const nodeLinks = links[sourceNodeName]
+      for (const inputName in nodeLinks) {
+        const linkArray = nodeLinks[inputName]
+        for (const link of linkArray) {
+          if (!nodeNames.has(link.targetNode)) {
+            throw new Error(`Link references non-existent target node: ${link.targetNode}`)
+          }
+        }
       }
     }
   }

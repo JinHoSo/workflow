@@ -103,13 +103,13 @@ export class ExecutionEngine {
 
   /**
    * Executes a single node
-   * Skips execution if pin data is available for the node
+   * Skips execution if mock data is available for the node
    * @param node - Node to execute
    * @param context - Execution context containing input data and state
    * @throws Error if node is not ready or execution fails (unless continueOnFail is set)
    */
   private async runNode(node: WorkflowNode, context: ExecutionContext): Promise<void> {
-    if (this.workflow.pinData?.[node.properties.name]) {
+    if (this.workflow.mockData?.[node.properties.name]) {
       return
     }
 
@@ -241,15 +241,15 @@ export class ExecutionEngine {
 
   /**
    * Gets output data from a node
-   * Uses pin data if available, otherwise gets from node output
+   * Uses mock data if available, otherwise gets from node output
    * @param node - Node to get output from
    * @param outputPortName - Name of the output port
    * @returns Data for the output port (single item or array)
    */
   private getNodeOutput(node: WorkflowNode, outputPortName: string): DataRecord | DataRecord[] {
-    if (this.workflow.pinData?.[node.properties.name]) {
-      const pinOutput = this.workflow.pinData[node.properties.name]
-      return pinOutput[outputPortName] || []
+    if (this.workflow.mockData?.[node.properties.name]) {
+      const mockOutput = this.workflow.mockData[node.properties.name]
+      return mockOutput[outputPortName] || []
     }
 
     if (node instanceof WorkflowNodeBase) {

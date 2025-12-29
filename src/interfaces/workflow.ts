@@ -3,6 +3,8 @@ import type { WorkflowLinks } from "./connection"
 import type { NodeTypeRegistry } from "./node-type"
 import type { DataRecord } from "./node-execution-data"
 import type { NodeOutput } from "./node-execution-data"
+import type { NodeProperties, NodeConfiguration } from "./node"
+import type { InputPort, OutputPort } from "./port"
 
 /**
  * Execution state of a workflow
@@ -29,12 +31,58 @@ export interface WorkflowSettings {
 }
 
 /**
- * Pin data for testing - allows overriding node outputs with fixed data
+ * Mock data for testing - allows overriding node outputs with fixed data
  * Used for testing workflows without executing certain nodes
  */
-export interface PinData {
+export interface MockData {
   [nodeName: string]: NodeOutput
 }
+
+/**
+ * Serialized node data for export/import
+ * Contains all data needed to reconstruct a node instance
+ */
+export interface SerializedNode {
+  /** Node properties (id, name, nodeType, version, position, etc.) */
+  properties: NodeProperties
+  /** Node configuration */
+  config: NodeConfiguration
+  /** Input port definitions */
+  inputs: InputPort[]
+  /** Output port definitions */
+  outputs: OutputPort[]
+  /** Optional annotation */
+  annotation?: string
+}
+
+/**
+ * Workflow export data format
+ * Complete serialized representation of a workflow
+ */
+export interface WorkflowExportData {
+  /** Export format version */
+  version: number
+  /** Workflow id */
+  id: string
+  /** Workflow name */
+  name?: string
+  /** Serialized nodes */
+  nodes: SerializedNode[]
+  /** Links between nodes (indexed by source node) */
+  linksBySource: WorkflowLinks
+  /** Workflow settings */
+  settings: WorkflowSettings
+  /** Static data */
+  staticData: DataRecord
+  /** Mock data (optional) */
+  mockData?: MockData
+}
+
+/**
+ * Node factory function type
+ * Creates a node instance from serialized node data
+ */
+export type NodeFactory = (serializedNode: SerializedNode) => WorkflowNode
 
 /**
  * Core workflow interface
@@ -57,8 +105,8 @@ export interface Workflow {
   staticData: DataRecord
   /** Workflow settings (timezone, etc.) */
   settings: WorkflowSettings
-  /** Pin data for testing (overrides node outputs) */
-  pinData?: PinData
+  /** Mock data for testing (overrides node outputs) */
+  mockData?: MockData
   /** Current execution state of the workflow */
   state: WorkflowState
 }
