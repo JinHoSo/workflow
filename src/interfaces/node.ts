@@ -2,6 +2,7 @@ import type { NodeState } from "../types"
 import type { InputPort, OutputPort } from "./port"
 import type { NodeOutput } from "./node-execution-data"
 import type { DataRecord } from "./node-execution-data"
+import type { ScheduleConfig } from "./schedule"
 
 /**
  * Properties that define a node's identity and behavior
@@ -43,6 +44,7 @@ export interface NodeConfiguration {
     | DataRecord
     | DataRecord[]
     | NodeOutput
+    | ScheduleConfig
     | null
     | undefined
 }

@@ -6,4 +6,5 @@ export * from "./node-type"
 export * from "./workflow"
 export * from "./trigger"
 export * from "./execution-state"
+export * from "./schedule"
 
