@@ -170,7 +170,7 @@ describe("Workflow Import/Export", () => {
       })
       workflow.addNode(node)
       node.setup({})
-      // Node is now in Ready state after setup, transition to Running
+      // Node is now in Idle state after setup, transition to Running
       node.setState(NodeState.Running)
 
       const json = workflow.export()

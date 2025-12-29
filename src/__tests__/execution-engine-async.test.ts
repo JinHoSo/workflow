@@ -4,6 +4,7 @@ import { ExecutionEngine } from "../execution/execution-engine"
 import { ManualTrigger } from "../triggers/manual-trigger"
 import { JavaScriptNode } from "../nodes/javascript-execution-node"
 import { NodeState } from "../types"
+import { WorkflowState } from "../interfaces"
 import type { NodeProperties, NodeOutput } from "../interfaces"
 import type { ExecutionContext } from "../interfaces/execution-state"
 
@@ -95,7 +96,7 @@ describe("ExecutionEngine - Async Support", () => {
       `,
     })
 
-    workflow.addNode(trigger)
+    workflow.addTriggerNode(trigger)
     workflow.addNode(asyncNode)
     workflow.addNode(syncNode)
     workflow.addNode(finalNode)
@@ -114,14 +115,21 @@ describe("ExecutionEngine - Async Support", () => {
     syncNode.setup({})
 
     const engine = new ExecutionEngine(workflow)
-    trigger.trigger({ output: { value: 5 } })
+    trigger.setExecutionEngine(engine)
 
     const startTime = Date.now()
-    await engine.execute("trigger")
+    trigger.trigger({ output: { value: 5 } })
+    // Wait for async execution to complete (async-node has 4000ms delay)
+    // Also wait for workflow state to be completed
+    let attempts = 0
+    while (workflow.state !== WorkflowState.Completed && workflow.state !== WorkflowState.Failed && attempts < 500) {
+      await new Promise((resolve) => setTimeout(resolve, 10))
+      attempts++
+    }
     const duration = Date.now() - startTime
 
-    // final-node should wait for async-node (200ms delay)
-    expect(duration).toBeGreaterThanOrEqual(200)
+    // final-node should wait for async-node (4000ms delay)
+    expect(duration).toBeGreaterThanOrEqual(4000)
     expect(asyncNode.state).toBe(NodeState.Completed)
     expect(syncNode.state).toBe(NodeState.Completed)
     expect(finalNode.state).toBe(NodeState.Completed)
@@ -179,7 +187,7 @@ describe("ExecutionEngine - Async Support", () => {
       `,
     })
 
-    workflow.addNode(trigger)
+    workflow.addTriggerNode(trigger)
     workflow.addNode(node1)
     workflow.addNode(node2)
     workflow.addNode(node3)
@@ -195,8 +203,14 @@ describe("ExecutionEngine - Async Support", () => {
     node3.setup({ code: node3.config.code as string })
 
     const engine = new ExecutionEngine(workflow)
+    trigger.setExecutionEngine(engine)
     trigger.trigger()
-    await engine.execute("trigger")
+    // Wait for async execution to complete
+    let attempts = 0
+    while (workflow.state !== WorkflowState.Completed && workflow.state !== WorkflowState.Failed && attempts < 50) {
+      await new Promise((resolve) => setTimeout(resolve, 10))
+      attempts++
+    }
 
     // node1: 10
     // node2: 10 * 2 = 20
@@ -259,7 +273,7 @@ describe("ExecutionEngine - Async Support", () => {
       `,
     })
 
-    workflow.addNode(trigger)
+    workflow.addTriggerNode(trigger)
     workflow.addNode(asyncNode1)
     workflow.addNode(asyncNode2)
     workflow.addNode(mergeNode)
@@ -275,10 +289,17 @@ describe("ExecutionEngine - Async Support", () => {
     mergeNode.setup({ code: mergeNode.config.code as string })
 
     const engine = new ExecutionEngine(workflow)
-    trigger.trigger({ output: { value: 5 } })
+    trigger.setExecutionEngine(engine)
 
     const startTime = Date.now()
-    await engine.execute("trigger")
+    trigger.trigger({ output: { value: 5 } })
+    // Wait for async execution to complete (both async nodes have 200ms delay)
+    // Also wait for workflow state to be completed
+    let attempts = 0
+    while (workflow.state !== WorkflowState.Completed && workflow.state !== WorkflowState.Failed && attempts < 50) {
+      await new Promise((resolve) => setTimeout(resolve, 10))
+      attempts++
+    }
     const duration = Date.now() - startTime
 
     // Should wait for the slowest async node (150ms)

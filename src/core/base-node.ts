@@ -102,7 +102,7 @@ export abstract class BaseNode implements Node {
         this.error = new Error("Node execution failed")
       }
     } else {
-      throw new Error(`Invalid state transition from ${this.state} to ${state}`)
+      throw new Error(`${this.properties.name}: Invalid state transition from ${this.state} to ${state}`)
     }
   }
 
@@ -116,16 +116,15 @@ export abstract class BaseNode implements Node {
 
   /**
    * Configures the node with parameters
-   * Validates configuration and transitions to Ready state if valid
+   * Validates configuration and updates config if valid
+   * Does not change node state - nodes can execute from Idle state if they have valid configuration
    * @param config - Configuration parameters
    * @throws Error if configuration is invalid
    */
   setup(config: NodeConfiguration): void {
     if (this.validateConfig(config)) {
       this.config = { ...this.config, ...config }
-      if (this.state === NodeState.Idle || this.state === NodeState.Failed) {
-        this.setState(NodeState.Ready)
-      }
+      // State is not changed - nodes can execute from Idle state if they have valid configuration
     } else {
       throw new Error("Invalid configuration")
     }
@@ -136,10 +135,10 @@ export abstract class BaseNode implements Node {
    * Calls process() and handles state transitions and errors
    * @param context - Execution context containing input data and state
    * @returns Output data (port name based)
-   * @throws Error if node is not in Ready state or execution fails
+   * @throws Error if node is not in Idle state or execution fails
    */
   async run(context: ExecutionContext): Promise<NodeOutput> {
-    if (this.state !== NodeState.Ready) {
+    if (this.state !== NodeState.Idle) {
       throw new Error(`Cannot run node in ${this.state} state`)
     }
 
@@ -158,24 +157,25 @@ export abstract class BaseNode implements Node {
 
   /**
    * Stops node execution
-   * Resets state to Ready and clears error
+   * Resets state to Idle and clears error
    */
   stop(): void {
     if (this.state === NodeState.Completed || this.state === NodeState.Failed) {
-      this.setState(NodeState.Ready)
+      this.setState(NodeState.Idle)
       this.error = undefined
     }
   }
 
   /**
    * Resets the node to initial state
-   * Clears configuration, error, and result data
+   * Clears error and result data, but preserves configuration
+   * Always sets state to Idle regardless of configuration
    */
   reset(): void {
-    this.state = NodeState.Idle
-    this.config = {}
+    // Preserve configuration - nodes should remain configured after reset
     this.error = undefined
     this.resultData = {}
+    this.state = NodeState.Idle
   }
 
   /**
@@ -221,11 +221,10 @@ export abstract class BaseNode implements Node {
    */
   private canTransition(from: NodeState, to: NodeState): boolean {
     const validTransitions: Record<NodeState, NodeState[]> = {
-      [NodeState.Idle]: [NodeState.Ready],
-      [NodeState.Ready]: [NodeState.Running],
+      [NodeState.Idle]: [NodeState.Running],
       [NodeState.Running]: [NodeState.Completed, NodeState.Failed],
-      [NodeState.Completed]: [NodeState.Ready, NodeState.Idle],
-      [NodeState.Failed]: [NodeState.Ready, NodeState.Idle],
+      [NodeState.Completed]: [NodeState.Idle],
+      [NodeState.Failed]: [NodeState.Idle],
     }
 
     return validTransitions[from]?.includes(to) ?? false

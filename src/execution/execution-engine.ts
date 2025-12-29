@@ -24,25 +24,46 @@ export class ExecutionEngine {
   }
 
   /**
+   * Gets the current workflow state
+   * @returns Current workflow state
+   */
+  getWorkflowState(): WorkflowState {
+    return this.workflow.state
+  }
+
+  /**
    * Executes the workflow starting from a trigger node
+   * Resets the workflow to clean state before execution
    * Resolves dependencies and executes nodes in the correct order
    * @param triggerNodeName - Name of the trigger node to start execution
    * @param _initialData - Optional initial data for the trigger (not used, trigger should be executed before calling this)
    * @throws Error if workflow is already executing or trigger not found
    */
   async execute(triggerNodeName: string, _initialData?: NodeOutput): Promise<void> {
-    if (this.workflow.state !== WorkflowState.Idle) {
+    if (this.workflow.state === WorkflowState.Running) {
       throw new Error("Workflow is already executing")
     }
+
+    // Get trigger node to verify it exists (check triggers collection first)
+    const triggerNode = this.workflow.triggers[triggerNodeName] || this.workflow.nodes[triggerNodeName]
+    if (!triggerNode) {
+      throw new Error(`Trigger node ${triggerNodeName} not found`)
+    }
+
+    // Reset workflow to clean state before execution
+    // This resets regular nodes (non-trigger nodes) only
+    // Trigger nodes are preserved to maintain their state and configuration
+    if ("reset" in this.workflow && typeof this.workflow.reset === "function") {
+      this.workflow.reset()
+    }
+
+    // Clear execution state to prevent contamination from previous executions
+    this.executionState = {}
+    this.nodePromises.clear()
 
     this.workflow.state = WorkflowState.Running
 
     try {
-      const triggerNode = this.workflow.nodes[triggerNodeName]
-      if (!triggerNode) {
-        throw new Error(`Trigger node ${triggerNodeName} not found`)
-      }
-
       // Initialize execution state with trigger node output
       if (triggerNode instanceof BaseNode && triggerNode.state === NodeState.Completed) {
         this.executionState[triggerNodeName] = triggerNode.getAllResults()
@@ -50,14 +71,14 @@ export class ExecutionEngine {
 
       const executedNodes = new Set<string>([triggerNodeName])
       const queue = this.getConnectedNodes(triggerNodeName)
-
       while (queue.length > 0) {
         const nodeName = queue.shift()
         if (!nodeName || executedNodes.has(nodeName)) {
           continue
         }
 
-        const node = this.workflow.nodes[nodeName]
+        // Check both nodes and triggers collections (regular nodes only in queue, but check both for safety)
+        const node = this.workflow.nodes[nodeName] || this.workflow.triggers[nodeName]
         if (!node) {
           continue
         }
@@ -113,7 +134,7 @@ export class ExecutionEngine {
       return
     }
 
-    if (node.state !== NodeState.Ready) {
+    if (node.state !== NodeState.Idle) {
       throw new Error(`Node ${node.properties.name} is not ready`)
     }
 
@@ -153,7 +174,8 @@ export class ExecutionEngine {
       // Wait for all source nodes to complete by awaiting their promises
       await Promise.all(
         Array.from(sourceNodeNames).map(async (sourceNodeName) => {
-          const sourceNode = this.workflow.nodes[sourceNodeName]
+          // Check both nodes and triggers collections
+          const sourceNode = this.workflow.nodes[sourceNodeName] || this.workflow.triggers[sourceNodeName]
           if (!sourceNode) return
 
           // If node is already completed, no need to wait
@@ -196,10 +218,10 @@ export class ExecutionEngine {
             throw new Error(`Source node ${sourceNodeName} failed`)
           }
 
-          // If node is in Idle or Ready state, it hasn't been executed yet
+          // If node is in Idle state, it hasn't been executed yet
           // This shouldn't happen in normal flow, but we'll wait a bit
           // in case it's about to start
-          if (sourceNode.state === NodeState.Idle || sourceNode.state === NodeState.Ready) {
+          if (sourceNode.state === NodeState.Idle) {
             // Wait a short time to see if execution starts
             await new Promise((resolve) => setTimeout(resolve, 10))
             const promise = this.nodePromises.get(sourceNodeName)
@@ -216,7 +238,8 @@ export class ExecutionEngine {
         const portData: DataRecord[] = []
 
         for (const link of inputLinks) {
-          const sourceNode = this.workflow.nodes[link.targetNode]
+          // Check both nodes and triggers collections
+          const sourceNode = this.workflow.nodes[link.targetNode] || this.workflow.triggers[link.targetNode]
           if (sourceNode && sourceNode.state === NodeState.Completed) {
             const sourceOutput = this.getNodeOutput(sourceNode, link.outputPortName)
             // Normalize to array

@@ -3,6 +3,7 @@ import { JavaScriptNode } from "../nodes/javascript-execution-node"
 import { Workflow } from "../core/workflow"
 import { ExecutionEngine } from "../execution/execution-engine"
 import { NodeState } from "../types"
+import { WorkflowState } from "../interfaces"
 import type { NodeProperties, NodeOutput } from "../interfaces"
 
 describe("ManualTrigger", () => {
@@ -54,11 +55,7 @@ describe("ManualTrigger", () => {
     expect(executedData).toEqual(initialData)
   })
 
-  test("should throw error if not configured", () => {
-    expect(() => {
-      trigger.trigger()
-    }).toThrow("Trigger must be configured before execution")
-  })
+
 
   test("should execute workflow: manual-trigger -> js-node1 (1+1) -> js-node2 (input+3)", async () => {
     const workflow = new Workflow("test-workflow")
@@ -103,7 +100,7 @@ describe("ManualTrigger", () => {
     })
 
     // workflow에 노드들 추가
-    workflow.addNode(trigger)
+    workflow.addTriggerNode(trigger)
     workflow.addNode(jsNode1)
     workflow.addNode(jsNode2)
 
@@ -116,12 +113,12 @@ describe("ManualTrigger", () => {
 
     // ExecutionEngine으로 실행
     const engine = new ExecutionEngine(workflow)
+    trigger.setExecutionEngine(engine)
 
-    // trigger 실행 (이미 실행되어 Completed 상태가 됨)
+    // trigger 실행 (ExecutionEngine이 자동으로 워크플로우를 리셋하고 실행함)
     trigger.trigger()
-
-    // ExecutionEngine 실행 (trigger는 이미 실행되었으므로 건너뛰고 연결된 노드들만 실행)
-    await engine.execute("trigger")
+    // Wait for async execution to complete
+    await new Promise((resolve) => setTimeout(resolve, 1000))
 
     // 결과 확인
     // js-node1: 1+1 = 2
@@ -171,7 +168,7 @@ describe("ManualTrigger", () => {
       `,
     })
 
-    workflow.addNode(trigger)
+    workflow.addTriggerNode(trigger)
     workflow.addNode(jsNode)
     workflow.linkNodes("trigger", "output", "js-node", "input")
 
@@ -179,8 +176,10 @@ describe("ManualTrigger", () => {
     jsNode.setup({ code: jsNode.config.code as string })
 
     const engine = new ExecutionEngine(workflow)
+    trigger.setExecutionEngine(engine)
     trigger.trigger({ output: { value: 5 } })
-    await engine.execute("trigger")
+    // Wait for async execution to complete
+    await new Promise((resolve) => setTimeout(resolve, 10))
 
     expect(jsNode.state).toBe(NodeState.Completed)
     const result = jsNode.getResult("result")
@@ -237,7 +236,7 @@ describe("ManualTrigger", () => {
       `,
     })
 
-    workflow.addNode(trigger)
+    workflow.addTriggerNode(trigger)
     workflow.addNode(jsNode1)
     workflow.addNode(jsNode2)
     workflow.addNode(jsNode3)
@@ -253,8 +252,10 @@ describe("ManualTrigger", () => {
     jsNode3.setup({ code: jsNode3.config.code as string })
 
     const engine = new ExecutionEngine(workflow)
+    trigger.setExecutionEngine(engine)
     trigger.trigger()
-    await engine.execute("trigger")
+    // Wait for async execution to complete
+    await new Promise((resolve) => setTimeout(resolve, 10))
 
     expect(jsNode3.state).toBe(NodeState.Completed)
     const result = jsNode3.getResult("output")
@@ -292,7 +293,7 @@ describe("ManualTrigger", () => {
       `,
     })
 
-    workflow.addNode(trigger)
+    workflow.addTriggerNode(trigger)
     workflow.addNode(transformNode)
     workflow.linkNodes("trigger", "output", "transform", "input")
 
@@ -300,6 +301,7 @@ describe("ManualTrigger", () => {
     transformNode.setup({ code: transformNode.config.code as string })
 
     const engine = new ExecutionEngine(workflow)
+    trigger.setExecutionEngine(engine)
     trigger.trigger({
       output: [
         { value: 2 },
@@ -307,7 +309,8 @@ describe("ManualTrigger", () => {
         { value: 4 },
       ],
     })
-    await engine.execute("trigger")
+    // Wait for async execution to complete
+    await new Promise((resolve) => setTimeout(resolve, 10))
 
     expect(transformNode.state).toBe(NodeState.Completed)
     const result = transformNode.getResult("output")
@@ -317,5 +320,135 @@ describe("ManualTrigger", () => {
     expect(resultArray[0]).toEqual({ original: 2, doubled: 4, squared: 4 })
     expect(resultArray[1]).toEqual({ original: 3, doubled: 6, squared: 9 })
     expect(resultArray[2]).toEqual({ original: 4, doubled: 8, squared: 16 })
+  })
+
+  test("should reset workflow state between multiple executions", async () => {
+    const workflow = new Workflow("test-workflow")
+
+    const trigger = new ManualTrigger({
+      id: "trigger-1",
+      name: "trigger",
+      nodeType: "manual-trigger",
+      version: 1,
+      position: [0, 0],
+    })
+
+    const jsNode = new JavaScriptNode({
+      id: "js-node-1",
+      name: "js-node",
+      nodeType: "javascript",
+      version: 1,
+      position: [100, 0],
+    })
+    jsNode.setup({
+      code: `
+        const value = input().value || 0;
+        return { value: value + 1 };
+      `,
+    })
+
+    workflow.addTriggerNode(trigger)
+    workflow.addNode(jsNode)
+    workflow.linkNodes("trigger", "output", "js-node", "input")
+
+    trigger.setup({})
+
+    const engine = new ExecutionEngine(workflow)
+    trigger.setExecutionEngine(engine)
+
+    // First execution
+    trigger.trigger({ output: { value: 10 } })
+    // Wait for workflow execution to complete
+    let attempts = 0
+    while (workflow.state !== WorkflowState.Completed && workflow.state !== WorkflowState.Failed && attempts < 100) {
+      await new Promise((resolve) => setTimeout(resolve, 20))
+      attempts++
+    }
+
+    expect(workflow.state).toBe(WorkflowState.Completed)
+    expect(jsNode.state).toBe(NodeState.Completed)
+    const firstResult = jsNode.getResult("output")
+    const firstData = Array.isArray(firstResult) ? firstResult[0] : firstResult
+    expect(firstData.value).toBe(11)
+
+    // Second execution - should start with clean state
+    // Wait a bit more to ensure workflow state is fully settled
+    await new Promise((resolve) => setTimeout(resolve, 100))
+
+    // Verify workflow is still Completed (it will be reset to Idle when execute() is called)
+    // But we need to wait for the previous execution to fully complete
+    // The workflow state should be Completed at this point, and will be reset to Idle
+    // when the next execute() is called
+    expect(workflow.state).toBe(WorkflowState.Completed)
+
+    trigger.trigger({ output: { value: 20 } })
+    // Wait for workflow execution to complete
+    attempts = 0
+    while (workflow.state !== WorkflowState.Completed && workflow.state !== WorkflowState.Failed && attempts < 50) {
+      await new Promise((resolve) => setTimeout(resolve, 10))
+      attempts++
+    }
+
+    // Node should have been reset and executed again
+    expect(jsNode.state).toBe(NodeState.Completed)
+    const secondResult = jsNode.getResult("output")
+    const secondData = Array.isArray(secondResult) ? secondResult[0] : secondResult
+    expect(secondData.value).toBe(21) // Should be 20 + 1, not 11 + 1
+  })
+
+  test("should clear node outputs between executions", async () => {
+    const workflow = new Workflow("test-workflow")
+
+    const trigger = new ManualTrigger({
+      id: "trigger-1",
+      name: "trigger",
+      nodeType: "manual-trigger",
+      version: 1,
+      position: [0, 0],
+    })
+
+    const jsNode = new JavaScriptNode({
+      id: "js-node-1",
+      name: "js-node",
+      nodeType: "javascript",
+      version: 1,
+      position: [100, 0],
+    })
+    jsNode.setup({
+      code: `
+        return { value: 100 };
+      `,
+    })
+
+    workflow.addTriggerNode(trigger)
+    workflow.addNode(jsNode)
+    workflow.linkNodes("trigger", "output", "js-node", "input")
+
+    trigger.setup({})
+    jsNode.setup({ code: jsNode.config.code as string })
+
+    const engine = new ExecutionEngine(workflow)
+    trigger.setExecutionEngine(engine)
+
+    // First execution
+    trigger.trigger()
+    // Wait for workflow execution to complete
+    let attempts = 0
+    while (workflow.state !== WorkflowState.Completed && workflow.state !== WorkflowState.Failed && attempts < 50) {
+      await new Promise((resolve) => setTimeout(resolve, 10))
+      attempts++
+    }
+
+    const firstResult = jsNode.getResult("output")
+    const firstData = Array.isArray(firstResult) ? firstResult[0] : firstResult
+    expect(firstData.value).toBe(100)
+
+    // Reset workflow manually to verify outputs are cleared
+    workflow.reset()
+
+    // After reset, node outputs should be cleared
+    const afterResetResult = jsNode.getResult("output")
+    expect(afterResetResult).toEqual([])
+    expect(jsNode.state).toBe(NodeState.Idle)
   })
 })

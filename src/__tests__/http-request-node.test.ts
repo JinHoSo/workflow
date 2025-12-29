@@ -28,7 +28,7 @@ describe("HttpRequestNode", () => {
         method: "GET",
         url: "https://api.example.com/data",
       })
-      expect(node.state).toBe(NodeState.Ready)
+      expect(node.state).toBe(NodeState.Idle)
     })
 
     test("should throw error for invalid HTTP method", () => {
@@ -78,7 +78,7 @@ describe("HttpRequestNode", () => {
         basicAuthUsername: "user",
         basicAuthPassword: "pass",
       })
-      expect(node.state).toBe(NodeState.Ready)
+      expect(node.state).toBe(NodeState.Idle)
     })
 
     test("should configure with Bearer Token", () => {
@@ -88,7 +88,7 @@ describe("HttpRequestNode", () => {
         authType: "bearer",
         bearerToken: "token123",
       })
-      expect(node.state).toBe(NodeState.Ready)
+      expect(node.state).toBe(NodeState.Idle)
     })
   })
 

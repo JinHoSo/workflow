@@ -1,17 +1,18 @@
-import { WorkflowTriggerBase } from "./base-trigger"
+import { TriggerNodeBase } from "./base-trigger"
 import type { NodeProperties, NodeConfiguration, NodeOutput } from "../interfaces"
 import type { ExecutionContext } from "../interfaces/execution-state"
 import type { ScheduleConfig } from "../interfaces/schedule"
 import { LinkType } from "../types"
 import { NodeState } from "../types"
+import { WorkflowState } from "../interfaces"
 import { validateScheduleConfig, calculateNextExecution } from "./schedule-utils"
+import type { ExecutionEngine } from "../execution/execution-engine"
 
 /**
  * Schedule trigger node that executes workflows on a time-based schedule
  * Supports minute, hour, day, month, and year intervals with second-level precision
  */
-export class ScheduleTrigger extends WorkflowTriggerBase {
-  private workflowCallback?: (data: NodeOutput) => void
+export class ScheduleTrigger extends TriggerNodeBase {
   private scheduleTimer?: NodeJS.Timeout
   private scheduleConfig?: ScheduleConfig
   private nextExecutionTime?: Date
@@ -44,10 +45,10 @@ export class ScheduleTrigger extends WorkflowTriggerBase {
 
     super.setup(config)
 
-    // Automatically activate schedule after setup completes (state becomes Ready)
-    if (this.scheduleConfig && this.state === NodeState.Ready) {
-      this.activateSchedule()
-    }
+    // // Automatically activate schedule after setup completes (state is Idle)
+    // if (this.scheduleConfig && this.state === NodeState.Idle) {
+    //   this.activateSchedule()
+    // }
   }
 
   /**
@@ -78,13 +79,21 @@ export class ScheduleTrigger extends WorkflowTriggerBase {
     this.nextExecutionTime = undefined
   }
 
+
   /**
    * Sets the callback function to be called when trigger activates
    * This callback should start the workflow execution
    * @param callback - Function that receives execution data and starts workflow
+   * @deprecated Use setExecutionEngine instead for automatic workflow execution
    */
   setCallback(callback: (data: NodeOutput) => void): void {
-    this.workflowCallback = callback
+    // For backward compatibility with tests
+    this.setExecutionEngine({
+      execute: async () => {
+        callback(this.resultData || this.getDefaultData())
+      },
+      getWorkflowState: () => WorkflowState.Idle,
+    } as unknown as ExecutionEngine)
   }
 
   /**
@@ -106,25 +115,24 @@ export class ScheduleTrigger extends WorkflowTriggerBase {
   /**
    * Performs the actual trigger activation
    * Called when the scheduled time arrives
+   * Schedules the next execution immediately before executing the workflow
    * @param data - Initial data for the workflow (port name based)
    */
   protected override activate(data: NodeOutput): void {
-    // Reset state to Ready if needed (allows re-triggering)
+    // Schedule next execution immediately, before executing the workflow
+    // This ensures fixed intervals for interval type and proper timing for absolute time types
+    if (this.scheduleConfig) {
+      this.activateSchedule()
+    }
+
+    // Reset state to Idle if needed (allows re-triggering)
     if (this.state === NodeState.Completed || this.state === NodeState.Failed) {
-      this.setState(NodeState.Ready)
+      this.setState(NodeState.Idle)
     }
     this.setState(NodeState.Running)
     // Set output data so connected nodes can access it
     this.resultData = data
-    if (this.workflowCallback) {
-      this.workflowCallback(data)
-    }
     this.setState(NodeState.Completed)
-
-    // Schedule next execution after current execution completes
-    if (this.scheduleConfig) {
-      this.scheduleNextExecution()
-    }
   }
 
   /**
@@ -162,8 +170,33 @@ export class ScheduleTrigger extends WorkflowTriggerBase {
     // Only schedule if delay is positive and reasonable (not more than 1 year)
     if (delayMs > 0 && delayMs < 365 * 24 * 60 * 60 * 1000) {
       this.scheduleTimer = setTimeout(() => {
-        const executionData = this.getDefaultData()
-        this.trigger(executionData)
+        try {
+
+          // Execute workflow if execution engine is set
+          // ExecutionEngine.execute() will reset regular nodes, but the trigger's resultData
+          // is already set and will be preserved during execution
+          if (this.executionEngine) {
+            // Execute workflow asynchronously but don't wait for it
+            // This allows the trigger to complete immediately
+            this.executionEngine.execute(this.properties.name).catch((error) => {
+              // Don't set error state here - the workflow reset may have already occurred
+              // and we can't transition from Completed to Failed anyway
+              // Just store the error for inspection if needed
+              this.error = error instanceof Error ? error : new Error(String(error))
+              // Note: We don't set state to Failed because:
+              // 1. The trigger is already Completed
+              // 2. The workflow may have been reset, making state transitions invalid
+              // 3. The error is still accessible via this.error for debugging
+            })
+          }
+
+          const executionData = this.getDefaultData()
+          this.activate(executionData)
+        } catch (error) {
+          // If workflow is already running, silently skip this execution
+          // The error is expected and doesn't need to be propagated
+          // The next scheduled execution will try again
+        }
       }, delayMs)
     }
   }

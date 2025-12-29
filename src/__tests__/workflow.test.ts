@@ -7,6 +7,7 @@ import type { NodeOutput } from "../interfaces"
 import type { ExecutionContext } from "../interfaces/execution-state"
 import type { ScheduleConfig } from "../interfaces/schedule"
 import { NodeState } from "../types"
+import { WorkflowState } from "../interfaces"
 
 class TestNode extends BaseNode {
   protected async process(context: ExecutionContext): Promise<NodeOutput> {
@@ -241,7 +242,7 @@ describe("Workflow", () => {
       node1.addInput("input", "data")
       node1.addOutput("output", "data")
 
-      workflow.addNode(trigger)
+      workflow.addTriggerNode(trigger)
       workflow.addNode(node1)
       workflow.linkNodes("manual-trigger", "output", "node1", "input")
 
@@ -249,10 +250,17 @@ describe("Workflow", () => {
       node1.setup({})
 
       const engine = new ExecutionEngine(workflow)
+      trigger.setExecutionEngine(engine)
 
-      // Manual trigger 실행
+      // Manual trigger 실행 - trigger() calls activate() which executes the workflow
       trigger.trigger()
-      await engine.execute("manual-trigger")
+
+      // Wait for execution to complete
+      let attempts = 0
+      while (workflow.state !== WorkflowState.Completed && workflow.state !== WorkflowState.Failed && attempts < 50) {
+        await new Promise((resolve) => setTimeout(resolve, 10))
+        attempts++
+      }
 
       expect(trigger.state).toBe(NodeState.Completed)
       expect(node1.state).toBe(NodeState.Completed)
@@ -277,7 +285,7 @@ describe("Workflow", () => {
       node1.addInput("input", "data")
       node1.addOutput("output", "data")
 
-      workflow.addNode(trigger)
+      workflow.addTriggerNode(trigger)
       workflow.addNode(node1)
       workflow.linkNodes("manual-trigger", "output", "node1", "input")
 
@@ -285,17 +293,46 @@ describe("Workflow", () => {
       node1.setup({})
 
       const engine = new ExecutionEngine(workflow)
+      trigger.setExecutionEngine(engine)
 
-      // Manual trigger 실행
+      // Manual trigger 실행 - trigger() calls activate() which executes the workflow
       trigger.trigger()
-      await engine.execute("manual-trigger")
 
+      // Wait for execution to complete
+      let attempts = 0
+      while (workflow.state !== WorkflowState.Completed && workflow.state !== WorkflowState.Failed && attempts < 100) {
+        await new Promise((resolve) => setTimeout(resolve, 20))
+        attempts++
+      }
+
+      // Check if workflow completed successfully
+      if (workflow.state === WorkflowState.Failed) {
+        // Check for errors
+        for (const nodeName in workflow.nodes) {
+          const node = workflow.nodes[nodeName]
+          if (node instanceof BaseNode && node.error) {
+            throw node.error
+          }
+        }
+        throw new Error("Workflow failed")
+      }
+
+      expect(workflow.state).toBe(WorkflowState.Completed)
       expect(trigger.state).toBe(NodeState.Completed)
+      // After execution completes, nodes should be in Completed state (not reset yet)
       expect(node1.state).toBe(NodeState.Completed)
     })
   })
 
   describe("Schedule Trigger Integration", () => {
+    beforeEach(() => {
+      jest.useFakeTimers()
+    })
+
+    afterEach(() => {
+      jest.useRealTimers()
+    })
+
     beforeEach(() => {
       // Use fake timers for schedule trigger tests
       jest.useFakeTimers()
@@ -328,7 +365,7 @@ describe("Workflow", () => {
       node1.addInput("input", "data")
       node1.addOutput("output", "data")
 
-      workflow.addNode(trigger)
+      workflow.addTriggerNode(trigger)
       workflow.addNode(node1)
       workflow.linkNodes("schedule-trigger", "output", "node1", "input")
 
@@ -342,13 +379,18 @@ describe("Workflow", () => {
       trigger.setup({ schedule: scheduleConfig })
       node1.setup({})
 
-      // Schedule trigger에 callback 설정 (workflow 실행을 위해 필요)
-      let triggerExecuted = false
-      trigger.setCallback(() => {
-        triggerExecuted = true
-      })
-
       const engine = new ExecutionEngine(workflow)
+      trigger.setExecutionEngine(engine)
+
+      // Track trigger execution
+      let triggerExecuted = false
+      const originalExecute = engine.execute.bind(engine)
+      const executeWrapper = async (triggerName: string) => {
+        triggerExecuted = true
+        return originalExecute(triggerName)
+      }
+      // Replace execute method to track execution
+      ;(engine as { execute: typeof originalExecute }).execute = executeWrapper
 
       // Schedule trigger가 활성화되었는지 확인
       const nextExecutionTime = trigger.getNextExecutionTime()
@@ -364,13 +406,13 @@ describe("Workflow", () => {
         expect(delayMs).toBe(60 * 1000) // 정확히 1분
 
         // 초기 상태 확인 (아직 실행되지 않음)
-        expect(trigger.state).toBe(NodeState.Ready)
+        expect(trigger.state).toBe(NodeState.Idle)
         expect(triggerExecuted).toBe(false)
 
         // 30초만 이동 (아직 실행되지 않아야 함)
         jest.advanceTimersByTime(30 * 1000)
         expect(triggerExecuted).toBe(false)
-        expect(trigger.state).toBe(NodeState.Ready)
+        expect(trigger.state).toBe(NodeState.Idle)
 
         // 나머지 30초 이동 (총 1분, 이제 실행되어야 함)
         jest.advanceTimersByTime(30 * 1000)
@@ -379,9 +421,30 @@ describe("Workflow", () => {
         expect(triggerExecuted).toBe(true)
         expect(trigger.state).toBe(NodeState.Completed)
 
-        // Workflow 실행
-        await engine.execute("schedule-trigger")
+        // Switch to real timers to allow async execution
+        jest.useRealTimers()
 
+        // Wait for workflow execution to complete (trigger.activate() executes workflow automatically)
+        let attempts = 0
+        while (workflow.state !== WorkflowState.Completed && workflow.state !== WorkflowState.Failed && attempts < 100) {
+          await new Promise((resolve) => setTimeout(resolve, 20))
+          attempts++
+        }
+
+        // Check if workflow completed successfully
+        if (workflow.state === WorkflowState.Failed) {
+          // Check for errors
+          for (const nodeName in workflow.nodes) {
+            const node = workflow.nodes[nodeName]
+            if (node instanceof BaseNode && node.error) {
+              throw node.error
+            }
+          }
+          throw new Error("Workflow failed")
+        }
+
+        expect(workflow.state).toBe(WorkflowState.Completed)
+        // After execution completes, nodes should be in Completed state (not reset yet)
         expect(node1.state).toBe(NodeState.Completed)
       }
     })
@@ -405,7 +468,7 @@ describe("Workflow", () => {
       node1.addInput("input", "data")
       node1.addOutput("output", "data")
 
-      workflow.addNode(trigger)
+      workflow.addTriggerNode(trigger)
       workflow.addNode(node1)
       workflow.linkNodes("schedule-trigger", "output", "node1", "input")
 
@@ -419,13 +482,18 @@ describe("Workflow", () => {
       trigger.setup({ schedule: scheduleConfig })
       node1.setup({})
 
-      // Schedule trigger에 callback 설정
-      let triggerExecuted = false
-      trigger.setCallback(() => {
-        triggerExecuted = true
-      })
-
       const engine = new ExecutionEngine(workflow)
+      trigger.setExecutionEngine(engine)
+
+      // Track trigger execution
+      let triggerExecuted = false
+      const originalExecute = engine.execute.bind(engine)
+      const executeWrapper = async (triggerName: string) => {
+        triggerExecuted = true
+        return originalExecute(triggerName)
+      }
+      // Replace execute method to track execution
+      ;(engine as { execute: typeof originalExecute }).execute = executeWrapper
 
       // Schedule trigger가 활성화되었는지 확인
       const nextExecutionTime = trigger.getNextExecutionTime()
@@ -440,7 +508,7 @@ describe("Workflow", () => {
         expect(delayMs).toBe(30 * 1000)
 
         // 초기 상태 확인
-        expect(trigger.state).toBe(NodeState.Ready)
+        expect(trigger.state).toBe(NodeState.Idle)
         expect(triggerExecuted).toBe(false)
 
         // 다음 실행 시간까지 시간 이동 (30초 후)
@@ -450,9 +518,30 @@ describe("Workflow", () => {
         expect(triggerExecuted).toBe(true)
         expect(trigger.state).toBe(NodeState.Completed)
 
-        // Workflow 실행
-        await engine.execute("schedule-trigger")
+        // Switch to real timers to allow async execution
+        jest.useRealTimers()
 
+        // Wait for workflow execution to complete (trigger.activate() executes workflow automatically)
+        let attempts = 0
+        while (workflow.state !== WorkflowState.Completed && workflow.state !== WorkflowState.Failed && attempts < 100) {
+          await new Promise((resolve) => setTimeout(resolve, 20))
+          attempts++
+        }
+
+        // Check if workflow completed successfully
+        if (workflow.state === WorkflowState.Failed) {
+          // Check for errors
+          for (const nodeName in workflow.nodes) {
+            const node = workflow.nodes[nodeName]
+            if (node instanceof BaseNode && node.error) {
+              throw node.error
+            }
+          }
+          throw new Error("Workflow failed")
+        }
+
+        expect(workflow.state).toBe(WorkflowState.Completed)
+        // After execution completes, nodes should be in Completed state (not reset yet)
         expect(node1.state).toBe(NodeState.Completed)
       }
     })

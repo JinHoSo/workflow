@@ -20,7 +20,7 @@ describe("JavaScriptNode", () => {
 
   test("should configure with valid JavaScript code", () => {
     node.setup({ code: "return { value: input().value * 2 }" })
-    expect(node.state).toBe(NodeState.Ready)
+    expect(node.state).toBe(NodeState.Idle)
   })
 
   test("should throw error when code is missing", () => {

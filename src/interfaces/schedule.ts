@@ -79,6 +79,17 @@ export interface YearScheduleConfig {
 }
 
 /**
+ * Interval-based schedule configuration
+ * Executes at regular intervals (e.g., every 3 minutes, every 30 seconds)
+ */
+export interface IntervalScheduleConfig {
+  /** Schedule type identifier */
+  type: "interval"
+  /** Interval value in milliseconds */
+  intervalMs: number
+}
+
+/**
  * Union type for all schedule configuration types
  */
 export type ScheduleConfig =
@@ -87,6 +98,7 @@ export type ScheduleConfig =
   | DayScheduleConfig
   | MonthScheduleConfig
   | YearScheduleConfig
+  | IntervalScheduleConfig
 
 /**
  * Validation error for schedule configuration

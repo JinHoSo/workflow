@@ -47,9 +47,9 @@ describe("WorkflowNodeBase", () => {
     expect(node.outputs[0].name).toBe("output1")
   })
 
-  test("should transition from Idle to Ready", () => {
+  test("should configure node without changing state", () => {
     node.setup({ test: "value" })
-    expect(node.state).toBe(NodeState.Ready)
+    expect(node.state).toBe(NodeState.Idle)
   })
 
   test("should run node", async () => {
@@ -82,8 +82,10 @@ describe("WorkflowNodeBase", () => {
   test("should reset node", () => {
     node.setup({ test: "value" })
     node.reset()
+    // After reset, node should be in Idle state (configuration is preserved)
     expect(node.state).toBe(NodeState.Idle)
-    expect(node.config).toEqual({})
+    // Config is preserved after reset (only resultData and error are cleared)
+    expect(node.config).toEqual({ test: "value" })
   })
 
   test("should set and remove annotation", () => {

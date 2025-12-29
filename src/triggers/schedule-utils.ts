@@ -5,6 +5,7 @@ import type {
   DayScheduleConfig,
   MonthScheduleConfig,
   YearScheduleConfig,
+  IntervalScheduleConfig,
 } from "../interfaces/schedule"
 import { ScheduleValidationError } from "../interfaces/schedule"
 
@@ -29,6 +30,9 @@ export function validateScheduleConfig(config: ScheduleConfig): void {
       break
     case "year":
       validateYearSchedule(config)
+      break
+    case "interval":
+      validateIntervalSchedule(config)
       break
     default:
       throw new ScheduleValidationError(`Unknown schedule type: ${(config as ScheduleConfig).type}`)
@@ -125,6 +129,20 @@ function validateYearSchedule(config: YearScheduleConfig): void {
     throw new ScheduleValidationError(
       `Invalid day ${config.day} for month ${config.month} (e.g., February only has 28/29 days)`,
     )
+  }
+}
+
+/**
+ * Validates interval-based schedule configuration
+ * @param config - Interval schedule configuration
+ * @throws ScheduleValidationError if invalid
+ */
+function validateIntervalSchedule(config: IntervalScheduleConfig): void {
+  if (config.intervalMs <= 0) {
+    throw new ScheduleValidationError(`Interval must be greater than 0, got ${config.intervalMs}`)
+  }
+  if (config.intervalMs > 365 * 24 * 60 * 60 * 1000) {
+    throw new ScheduleValidationError(`Interval must be less than 1 year, got ${config.intervalMs}`)
   }
 }
 
@@ -282,6 +300,20 @@ export function nextYearExecution(
 }
 
 /**
+ * Calculates the next execution time for an interval-based schedule
+ * @param config - Interval schedule configuration
+ * @param currentTime - Current time (defaults to now)
+ * @returns Date object representing the next execution time
+ */
+export function nextIntervalExecution(
+  config: IntervalScheduleConfig,
+  currentTime: Date = new Date(),
+): Date {
+  const next = new Date(currentTime.getTime() + config.intervalMs)
+  return next
+}
+
+/**
  * Calculates the next execution time for any schedule configuration
  * @param config - Schedule configuration
  * @param currentTime - Current time (defaults to now)
@@ -302,6 +334,8 @@ export function calculateNextExecution(
       return nextMonthExecution(config, currentTime)
     case "year":
       return nextYearExecution(config, currentTime)
+    case "interval":
+      return nextIntervalExecution(config, currentTime)
     default:
       throw new ScheduleValidationError(`Unknown schedule type: ${(config as ScheduleConfig).type}`)
   }

@@ -5,6 +5,7 @@ import type { DataRecord } from "./node-execution-data"
 import type { NodeOutput } from "./node-execution-data"
 import type { NodeProperties, NodeConfiguration } from "./node"
 import type { InputPort, OutputPort } from "./port"
+import type { WorkflowTrigger } from "./trigger"
 
 /**
  * Execution state of a workflow
@@ -93,8 +94,10 @@ export interface Workflow {
   id: string
   /** Optional name of the workflow */
   name?: string
-  /** Collection of nodes keyed by node name */
+  /** Collection of regular nodes keyed by node name */
   nodes: { [nodeName: string]: Node }
+  /** Collection of trigger nodes keyed by node name */
+  triggers: { [nodeName: string]: WorkflowTrigger }
   /** Links indexed by source node (for finding outputs) */
   linksBySource: WorkflowLinks
   /** Links indexed by destination node (for finding inputs) */
@@ -109,5 +112,16 @@ export interface Workflow {
   mockData?: MockData
   /** Current execution state of the workflow */
   state: WorkflowState
+  /**
+   * Adds a regular node to the workflow
+   * @param node - Node instance to add
+   * @throws Error if node is a trigger (use addTriggerNode() instead)
+   */
+  addNode(node: Node): void
+  /**
+   * Adds a trigger node to the workflow
+   * @param trigger - Trigger node instance to add
+   */
+  addTriggerNode(trigger: WorkflowTrigger): void
 }
 
