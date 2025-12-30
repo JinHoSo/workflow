@@ -151,6 +151,60 @@ export class Workflow implements IWorkflow {
   }
 
   /**
+   * Disconnects an output port of one node from an input port of another node
+   * Removes the link from both source and target link indexes
+   * @param sourceNodeName - Name of the source node
+   * @param sourceOutputName - Name of the output port on the source node
+   * @param targetNodeName - Name of the target node
+   * @param targetInputName - Name of the input port on the target node
+   * @throws Error if nodes not found or link does not exist
+   */
+  unlinkNodes(
+    sourceNodeName: string,
+    sourceOutputName: string,
+    targetNodeName: string,
+    targetInputName: string,
+  ): void {
+    const sourceNode = this.nodes[sourceNodeName]
+    const targetNode = this.nodes[targetNodeName]
+
+    if (!sourceNode || !targetNode) {
+      throw new Error("Source or target node not found")
+    }
+
+    if (!this.linksBySource[sourceNodeName]) {
+      throw new Error("Link does not exist")
+    }
+
+    if (!this.linksBySource[sourceNodeName][targetInputName]) {
+      throw new Error("Link does not exist")
+    }
+
+    const linkArray = this.linksBySource[sourceNodeName][targetInputName]
+    const linkIndex = linkArray.findIndex(
+      (link) => link.targetNode === targetNodeName && link.outputPortName === sourceOutputName,
+    )
+
+    if (linkIndex === -1) {
+      throw new Error("Link does not exist")
+    }
+
+    // Remove the link from the array
+    linkArray.splice(linkIndex, 1)
+
+    // Clean up empty arrays and objects
+    if (linkArray.length === 0) {
+      delete this.linksBySource[sourceNodeName][targetInputName]
+    }
+    if (Object.keys(this.linksBySource[sourceNodeName]).length === 0) {
+      delete this.linksBySource[sourceNodeName]
+    }
+
+    // Update target index
+    this.linksByTarget = mapLinksByTarget(this.linksBySource)
+  }
+
+  /**
    * Replaces all nodes in the workflow
    * @param nodes - Array of nodes to set
    */
@@ -420,6 +474,78 @@ export class Workflow implements IWorkflow {
         `Missing node types in registry: ${missingTypes.join(", ")}. Please ensure all node types are registered before importing.`,
       )
     }
+  }
+
+  /**
+   * Validates that all node types in the workflow are available in the registry
+   * Checks all nodes in the workflow to ensure their node types are registered
+   * @param registry - Node type registry to check against
+   * @returns Validation result with missing node types and invalid nodes
+   */
+  validateNodeTypeAvailability(registry: NodeTypeRegistry): {
+    valid: boolean
+    missingTypes: Array<{ nodeName: string; nodeType: string; version?: number }>
+    invalidNodes: string[]
+  } {
+    const missingTypes: Array<{ nodeName: string; nodeType: string; version?: number }> = []
+    const invalidNodes: string[] = []
+
+    for (const nodeName in this.nodes) {
+      const node = this.nodes[nodeName]
+      const nodeType = registry.get(node.properties.nodeType, node.properties.version)
+
+      if (!nodeType) {
+        missingTypes.push({
+          nodeName,
+          nodeType: node.properties.nodeType,
+          version: node.properties.version,
+        })
+        invalidNodes.push(nodeName)
+      }
+    }
+
+    return {
+      valid: missingTypes.length === 0,
+      missingTypes,
+      invalidNodes,
+    }
+  }
+
+  /**
+   * Gets nodes that reference unavailable node types
+   * Useful for graceful handling when node types are unloaded
+   * @param registry - Node type registry to check against
+   * @returns Array of node names that reference unavailable node types
+   */
+  getNodesWithUnavailableTypes(registry: NodeTypeRegistry): string[] {
+    const unavailable: string[] = []
+
+    for (const nodeName in this.nodes) {
+      const node = this.nodes[nodeName]
+      const nodeType = registry.get(node.properties.nodeType, node.properties.version)
+
+      if (!nodeType) {
+        unavailable.push(nodeName)
+      }
+    }
+
+    return unavailable
+  }
+
+  /**
+   * Removes nodes that reference unavailable node types
+   * Gracefully handles unloaded node types by removing affected nodes
+   * @param registry - Node type registry to check against
+   * @returns Array of removed node names
+   */
+  removeNodesWithUnavailableTypes(registry: NodeTypeRegistry): string[] {
+    const unavailableNodes = this.getNodesWithUnavailableTypes(registry)
+
+    for (const nodeName of unavailableNodes) {
+      this.removeNode(nodeName)
+    }
+
+    return unavailableNodes
   }
 
   /**

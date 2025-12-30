@@ -37,6 +37,7 @@ export interface NodeType {
 /**
  * Registry for managing node types
  * Allows registration and retrieval of node types by name and version
+ * Supports plugin-based node type registration
  */
 export interface NodeTypeRegistry {
   /**
@@ -56,5 +57,17 @@ export interface NodeTypeRegistry {
    * @param nodeType - Node type to register
    */
   register(nodeType: NodeType): void
+  /**
+   * Registers node types from a plugin
+   * Creates NodeType instances from plugin's node classes and registers them
+   * @param plugin - Plugin containing node type classes
+   * @throws Error if node type metadata cannot be determined or registration fails
+   */
+  registerFromPlugin?(plugin: import("../plugins/plugin-manifest").Plugin): void
+  /**
+   * Unregisters all node types from a plugin
+   * @param pluginKey - Plugin key (name@version)
+   */
+  unregisterFromPlugin?(pluginKey: string): void
 }
 

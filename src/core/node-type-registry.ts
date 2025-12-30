@@ -1,12 +1,18 @@
-import type { NodeType, NodeTypeRegistry } from "../interfaces"
+import type { NodeType, NodeTypeRegistry, NodeInput, NodeOutput } from "../interfaces"
+import type { Node } from "../interfaces"
+import type { Plugin } from "../plugins/plugin-manifest"
+import { BaseNode } from "./base-node"
 
 /**
  * Registry for managing node types
  * Allows registration and retrieval of node types by name and version
  * Supports semantic versioning and version resolution
+ * Supports plugin-based node type registration
  */
 export class NodeTypeRegistryImpl implements NodeTypeRegistry {
   private nodeTypes: Map<string, NodeType> = new Map()
+  /** Map of plugin keys to node type keys for cleanup */
+  private pluginNodeTypes: Map<string, string[]> = new Map()
 
   /**
    * Retrieves a node type by name and optional version
@@ -101,5 +107,124 @@ export class NodeTypeRegistryImpl implements NodeTypeRegistry {
    */
   has(name: string, version?: number): boolean {
     return this.get(name, version) !== undefined
+  }
+
+  /**
+   * Registers node types from a plugin
+   * Creates NodeType instances from plugin's node classes and registers them
+   * @param plugin - Plugin containing node type classes
+   * @throws Error if node type metadata cannot be determined or registration fails
+   */
+  registerFromPlugin(plugin: Plugin): void {
+    const pluginKey = `${plugin.manifest.name}@${plugin.manifest.version}`
+    const registeredKeys: string[] = []
+
+    for (const NodeClass of plugin.nodeTypes) {
+      // Create NodeType instance from node class
+      const nodeType = this.createNodeTypeFromClass(NodeClass, plugin.manifest.name)
+
+      // Register the node type
+      this.register(nodeType)
+
+      const nodeTypeKey = `${nodeType.metadata.name}@${nodeType.metadata.version}`
+      registeredKeys.push(nodeTypeKey)
+    }
+
+    // Track which node types came from this plugin for cleanup
+    this.pluginNodeTypes.set(pluginKey, registeredKeys)
+  }
+
+  /**
+   * Unregisters all node types from a plugin
+   * @param pluginKey - Plugin key (name@version)
+   */
+  unregisterFromPlugin(pluginKey: string): void {
+    const nodeTypeKeys = this.pluginNodeTypes.get(pluginKey)
+    if (nodeTypeKeys) {
+      for (const key of nodeTypeKeys) {
+        const [name, versionStr] = key.split("@")
+        const version = versionStr ? Number.parseInt(versionStr, 10) : undefined
+        this.unregister(name, version)
+      }
+      this.pluginNodeTypes.delete(pluginKey)
+    }
+  }
+
+  /**
+   * Creates a NodeType instance from a BaseNode class
+   * Extracts metadata from the class and creates a wrapper that implements NodeType interface
+   * @param NodeClass - Node class constructor
+   * @param pluginName - Name of the plugin providing this node type
+   * @returns NodeType instance
+   */
+  private createNodeTypeFromClass(
+    NodeClass: new (properties: import("../interfaces").NodeProperties) => BaseNode,
+    pluginName: string,
+  ): NodeType {
+    // Extract node type name from class name (e.g., "JavaScriptNode" -> "javascript")
+    const nodeTypeName = NodeClass.name
+      .replace(/Node$/, "")
+      .replace(/([A-Z])/g, "-$1")
+      .toLowerCase()
+      .replace(/^-/, "")
+
+    // Create a temporary instance to extract configuration schema if available
+    // We'll use a minimal properties object - the actual node will be created with proper properties later
+    const tempProperties: import("../interfaces").NodeProperties = {
+      id: "temp-id",
+      name: "temp",
+      nodeType: nodeTypeName,
+      version: 1,
+      position: [0, 0],
+      isTrigger: false,
+    }
+    const tempInstance = new NodeClass(tempProperties)
+
+    // Get configuration schema if available (BaseNode has a protected configurationSchema property)
+    // We need to access it through a type assertion since it's protected
+    type BaseNodeWithSchema = BaseNode & {
+      configurationSchema?: import("../schemas/schema-validator").JsonSchema
+    }
+    const configurationSchema = (tempInstance as BaseNodeWithSchema).configurationSchema
+
+    // Create NodeType metadata
+    const metadata: import("../interfaces/node-type").NodeTypeMetadata = {
+      name: nodeTypeName,
+      displayName: NodeClass.name.replace(/([A-Z])/g, " $1").trim(),
+      description: `Node type provided by plugin ${pluginName}`,
+      version: 1, // Default version, can be enhanced to extract from class
+    }
+
+    // Create NodeType instance that wraps the node class
+    return {
+      metadata,
+      configurationSchema,
+      /**
+       * Runs the node with given input data
+       * Creates a node instance and executes it
+       */
+      async run(node: Node, inputData: NodeInput): Promise<NodeOutput> {
+        // If node is already an instance of the correct class, use it directly
+        if (node instanceof NodeClass) {
+          const executionContext: import("../interfaces/execution-state").ExecutionContext = {
+            input: inputData,
+            state: {}, // State will be provided by execution engine
+          }
+          return await node.run(executionContext)
+        }
+
+        // Otherwise, create a new instance (this shouldn't normally happen)
+        // but we support it for flexibility
+        const nodeInstance = new NodeClass(node.properties)
+        if ("setup" in nodeInstance && typeof nodeInstance.setup === "function") {
+          nodeInstance.setup(node.config)
+        }
+        const executionContext: import("../interfaces/execution-state").ExecutionContext = {
+          input: inputData,
+          state: {},
+        }
+        return await nodeInstance.run(executionContext)
+      },
+    }
   }
 }

@@ -4,13 +4,15 @@ A powerful, extensible workflow execution engine built with TypeScript. This sys
 
 ## Features
 
-- **Unified Node Model**: All nodes, including triggers, are treated uniformly
-- **DAG-Based Execution**: Intelligent dependency resolution and parallel execution
-- **Schema Validation**: JSON Schema validation for node configurations
-- **Retry Mechanism**: Configurable retry strategies with exponential backoff
-- **State Management**: Centralized execution state tracking
-- **Plugin System**: Extensible plugin architecture for custom node types
+- **Unified Node Model**: All nodes, including triggers, are treated uniformly in a single collection
+- **DAG-Based Execution**: Intelligent dependency resolution using topological sorting with parallel execution
+- **Schema Validation**: JSON Schema validation for node configurations with detailed error messages
+- **Retry Mechanism**: Configurable retry strategies (exponential backoff, fixed delay) with attempt tracking
+- **State Management**: Centralized execution state tracking with persistence hooks and recovery
+- **Plugin System**: Extensible plugin architecture for dynamic node type loading and registration
 - **Protocol-Based Design**: Consistent interfaces for execution, data flow, and error handling
+- **Version Management**: Semantic versioning with compatibility tracking and migration utilities
+- **Protocol Compliance**: Validation tools to ensure nodes comply with all protocols
 
 ## Installation
 
@@ -91,9 +93,13 @@ const result = jsNode.getResult("output")
 console.log(result) // { value: 10 }
 ```
 
-## Architecture
+## Documentation
 
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed architecture documentation.
+- **[ARCHITECTURE.md](./docs/ARCHITECTURE.md)**: Detailed architecture documentation
+- **[PROTOCOLS.md](./docs/PROTOCOLS.md)**: Protocol usage patterns and best practices
+- **[VERSIONING.md](./docs/VERSIONING.md)**: Node type versioning strategy
+- **[PLUGIN_DEVELOPMENT.md](./docs/PLUGIN_DEVELOPMENT.md)**: Guide for developing plugins
+- **[MIGRATION.md](./docs/MIGRATION.md)**: Migration guide from old architecture
 
 ## Node Types
 
@@ -185,12 +191,18 @@ console.log(metadata?.duration) // Execution duration in ms
 
 ## Plugin System
 
-Create and register plugins:
+Create and register plugins with automatic node type registration:
 
 ```typescript
 import { Plugin, PluginManifest } from "./src/plugins"
 import { pluginRegistry } from "./src/plugins/plugin-registry"
+import { NodeTypeRegistryImpl } from "./src/core/node-type-registry"
 
+// Create registry and connect to plugin registry
+const nodeTypeRegistry = new NodeTypeRegistryImpl()
+pluginRegistry.setNodeTypeRegistry(nodeTypeRegistry)
+
+// Create plugin
 const manifest: PluginManifest = {
   name: "my-plugin",
   version: "1.0.0",
@@ -204,18 +216,90 @@ const plugin: Plugin = {
   nodeTypes: [MyCustomNode],
 }
 
+// Register plugin (node types are automatically registered)
 await pluginRegistry.register(plugin)
+
+// Node types are now available
+const nodeType = nodeTypeRegistry.get("my-node-type")
 ```
 
 ## Protocols
 
 The system uses protocols for consistent behavior:
 
-- **ExecutionProtocol**: How nodes are executed
-- **DataFlowProtocol**: How data flows between nodes
-- **ErrorHandlingProtocol**: How errors are handled
+- **ExecutionProtocol**: How nodes are executed with state validation
+- **DataFlowProtocol**: How data flows between nodes with normalization
+- **ErrorHandlingProtocol**: How errors are handled with retry support
 
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for more details.
+### Protocol Compliance Validation
+
+Validate that nodes comply with all protocols:
+
+```typescript
+import { protocolValidator } from "./src/protocols/protocol-validator"
+import { executionProtocol, dataFlowProtocol, errorHandlingProtocol } from "./src/protocols"
+
+const result = protocolValidator.validateAllProtocols(
+  node,
+  executionProtocol,
+  dataFlowProtocol,
+  errorHandlingProtocol
+)
+
+if (!result.compliant) {
+  console.error("Compliance issues:", result.issues)
+}
+```
+
+See [PROTOCOLS.md](./docs/PROTOCOLS.md) for detailed protocol usage patterns.
+
+## Version Management
+
+Manage node type versions with compatibility tracking and migration:
+
+```typescript
+import { versionCompatibilityTracker } from "./src/core/version-compatibility"
+import { versionMigration } from "./src/core/version-migration"
+
+// Record compatibility
+versionCompatibilityTracker.recordCompatibility(
+  "node-type",
+  fromVersion,
+  toVersion,
+  compatible,
+  "minor"
+)
+
+// Check compatibility
+const compatibility = versionCompatibilityTracker.checkCompatibility(
+  "node-type",
+  fromVersion,
+  toVersion
+)
+
+// Migrate nodes
+const result = versionMigration.migrateNode(node, targetVersion, registry)
+```
+
+See [VERSIONING.md](./docs/VERSIONING.md) for versioning strategy details.
+
+## Workflow Validation
+
+Validate workflows for node type availability:
+
+```typescript
+// Check if all node types are available
+const validation = workflow.validateNodeTypeAvailability(registry)
+if (!validation.valid) {
+  console.error("Missing types:", validation.missingTypes)
+}
+
+// Get nodes with unavailable types
+const unavailable = workflow.getNodesWithUnavailableTypes(registry)
+
+// Remove unavailable nodes gracefully
+const removed = workflow.removeNodesWithUnavailableTypes(registry)
+```
 
 ## License
 

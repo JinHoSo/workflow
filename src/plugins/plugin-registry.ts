@@ -1,13 +1,25 @@
 import type { Plugin } from "./plugin-manifest"
+import type { NodeTypeRegistry } from "../interfaces/node-type"
 
 /**
  * Plugin registry for managing and loading plugins
+ * Integrates with NodeTypeRegistry to automatically register node types from plugins
  */
 export class PluginRegistry {
   private plugins: Map<string, Plugin> = new Map()
+  private nodeTypeRegistry?: NodeTypeRegistry
+
+  /**
+   * Sets the node type registry to use for plugin node type registration
+   * @param registry - Node type registry instance
+   */
+  setNodeTypeRegistry(registry: NodeTypeRegistry): void {
+    this.nodeTypeRegistry = registry
+  }
 
   /**
    * Registers a plugin
+   * Automatically registers node types from the plugin in NodeTypeRegistry if available
    * @param plugin - Plugin to register
    * @throws Error if plugin dependencies are not satisfied or plugin is already registered
    */
@@ -38,14 +50,18 @@ export class PluginRegistry {
     // Register plugin
     this.plugins.set(key, plugin)
 
-    // Register node types if registry is available
-    // Note: This is a simplified version - full implementation would create NodeType instances
-    // For now, we just store the plugin information
-    // TODO: Integrate with NodeTypeRegistry to register node types from plugins
+    // Register node types from plugin in NodeTypeRegistry if available
+    if (this.nodeTypeRegistry && plugin.nodeTypes.length > 0) {
+      // Use the registry's plugin integration method
+      if ("registerFromPlugin" in this.nodeTypeRegistry && typeof this.nodeTypeRegistry.registerFromPlugin === "function") {
+        this.nodeTypeRegistry.registerFromPlugin(plugin)
+      }
+    }
   }
 
   /**
    * Unregisters a plugin
+   * Automatically unregisters node types from the plugin in NodeTypeRegistry if available
    * @param pluginName - Name of the plugin to unregister
    * @param version - Optional version (unregisters specific version)
    */
@@ -57,6 +73,11 @@ export class PluginRegistry {
 
     const plugin = this.plugins.get(key)
     if (plugin) {
+      // Unregister node types from NodeTypeRegistry if available
+      if (this.nodeTypeRegistry && "unregisterFromPlugin" in this.nodeTypeRegistry && typeof this.nodeTypeRegistry.unregisterFromPlugin === "function") {
+        this.nodeTypeRegistry.unregisterFromPlugin(key)
+      }
+
       // Cleanup plugin if provided
       if (plugin.cleanup) {
         await plugin.cleanup()

@@ -66,6 +66,126 @@ describe("Workflow", () => {
     expect(workflow.linksByTarget["node2"]["input"]).toBeDefined()
   })
 
+  test("should unlink nodes", () => {
+    const node1 = new TestNode({
+      id: "node-1",
+      name: "node1",
+      nodeType: "test",
+      version: 1,
+      position: [0, 0],
+    })
+    node1.addOutput("output", "data")
+
+    const node2 = new TestNode({
+      id: "node-2",
+      name: "node2",
+      nodeType: "test",
+      version: 1,
+      position: [100, 0],
+    })
+    node2.addInput("input", "data")
+
+    workflow.addNode(node1)
+    workflow.addNode(node2)
+
+    // Link nodes first
+    workflow.linkNodes("node1", "output", "node2", "input")
+    expect(workflow.linksBySource["node1"]["input"]).toBeDefined()
+    expect(workflow.linksByTarget["node2"]["input"]).toBeDefined()
+
+    // Unlink nodes
+    workflow.unlinkNodes("node1", "output", "node2", "input")
+
+    // Links should be removed
+    expect(workflow.linksBySource["node1"]).toBeUndefined()
+    expect(workflow.linksByTarget["node2"]).toBeUndefined()
+  })
+
+  test("should throw error when unlinking non-existent link", () => {
+    const node1 = new TestNode({
+      id: "node-1",
+      name: "node1",
+      nodeType: "test",
+      version: 1,
+      position: [0, 0],
+    })
+    node1.addOutput("output", "data")
+
+    const node2 = new TestNode({
+      id: "node-2",
+      name: "node2",
+      nodeType: "test",
+      version: 1,
+      position: [100, 0],
+    })
+    node2.addInput("input", "data")
+
+    workflow.addNode(node1)
+    workflow.addNode(node2)
+
+    // Try to unlink without linking first
+    expect(() => {
+      workflow.unlinkNodes("node1", "output", "node2", "input")
+    }).toThrow("Link does not exist")
+  })
+
+  test("should throw error when unlinking with non-existent nodes", () => {
+    expect(() => {
+      workflow.unlinkNodes("node1", "output", "node2", "input")
+    }).toThrow("Source or target node not found")
+  })
+
+  test("should unlink specific link when multiple links exist", () => {
+    const node1 = new TestNode({
+      id: "node-1",
+      name: "node1",
+      nodeType: "test",
+      version: 1,
+      position: [0, 0],
+    })
+    node1.addOutput("output1", "data")
+    node1.addOutput("output2", "data")
+
+    const node2 = new TestNode({
+      id: "node-2",
+      name: "node2",
+      nodeType: "test",
+      version: 1,
+      position: [100, 0],
+    })
+    node2.addOutput("output", "data")
+
+    const node3 = new TestNode({
+      id: "node-3",
+      name: "node3",
+      nodeType: "test",
+      version: 1,
+      position: [200, 0],
+    })
+    node3.addInput("input", "data")
+
+    workflow.addNode(node1)
+    workflow.addNode(node2)
+    workflow.addNode(node3)
+
+    // Link multiple outputs to the same input
+    workflow.linkNodes("node1", "output1", "node3", "input")
+    workflow.linkNodes("node1", "output2", "node3", "input")
+    workflow.linkNodes("node2", "output", "node3", "input")
+
+    // Verify all links exist
+    expect(workflow.linksByTarget["node3"]["input"]).toHaveLength(3)
+
+    // Unlink only node1's output1
+    workflow.unlinkNodes("node1", "output1", "node3", "input")
+
+    // Verify only that specific link was removed
+    expect(workflow.linksByTarget["node3"]["input"]).toHaveLength(2)
+    const remainingLinks = workflow.linksByTarget["node3"]["input"]
+    const outputPortNames = remainingLinks.map((link) => link.outputPortName).sort()
+    expect(outputPortNames).toEqual(["output", "output2"])
+  })
+
   test("should reject link with type mismatch", () => {
     const node1 = new TestNode({
       id: "node-1",
