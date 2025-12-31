@@ -42,6 +42,12 @@ describe("ScheduleTrigger", () => {
     jest.useRealTimers()
   })
 
+  describe("Unified Node Model", () => {
+    test("should have isTrigger property set to true", () => {
+      expect(trigger.properties.isTrigger).toBe(true)
+    })
+  })
+
   describe("Configuration", () => {
     test("should accept minute schedule configuration", () => {
       const config: ScheduleConfig = { type: "minute", second: 11 }

@@ -26,6 +26,51 @@ describe("Workflow", () => {
     expect(workflow.id).toBe("test-workflow")
   })
 
+  describe("Unified Node Model", () => {
+    test("should store triggers and nodes in unified collection", () => {
+      const trigger = new ManualTrigger({
+        id: "trigger-1",
+        name: "trigger",
+        nodeType: "manual-trigger",
+        version: 1,
+        position: [0, 0],
+      })
+
+      const node = new TestNode({
+        id: "node-1",
+        name: "node1",
+        nodeType: "test",
+        version: 1,
+        position: [100, 0],
+      })
+
+      workflow.addNode(trigger)
+      workflow.addNode(node)
+
+      // Both should be in the same nodes collection
+      expect(workflow.nodes["trigger"]).toBe(trigger)
+      expect(workflow.nodes["node1"]).toBe(node)
+      expect(trigger.properties.isTrigger).toBe(true)
+      expect(node.properties.isTrigger).toBeUndefined() // Regular nodes don't have isTrigger set
+    })
+
+    test("should identify triggers by isTrigger property", () => {
+      const trigger = new ManualTrigger({
+        id: "trigger-1",
+        name: "trigger",
+        nodeType: "manual-trigger",
+        version: 1,
+        position: [0, 0],
+      })
+
+      workflow.addNode(trigger)
+
+      // Trigger should be identified by isTrigger property
+      const node = workflow.nodes["trigger"]
+      expect(node?.properties.isTrigger).toBe(true)
+    })
+  })
+
   test("should add node", () => {
     const node = new TestNode({
       id: "node-1",

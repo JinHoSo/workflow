@@ -129,4 +129,79 @@ describe("WorkflowNodeBase", () => {
     const result = node.getAllResults()
     expect(result).toEqual({})
   })
+
+  describe("Schema Validation", () => {
+    test("should validate configuration against schema when schema is provided", () => {
+      class SchemaNode extends BaseNode {
+        constructor(props: NodeProperties) {
+          super(props)
+          // Set a configuration schema
+          this.configurationSchema = {
+            type: "object",
+            properties: {
+              requiredField: { type: "string" },
+              optionalField: { type: "number" },
+            },
+            required: ["requiredField"],
+          }
+        }
+
+        protected async process(): Promise<NodeOutput> {
+          return {}
+        }
+      }
+
+      const schemaNode = new SchemaNode(properties)
+
+      // Valid configuration
+      expect(() => {
+        schemaNode.setup({ requiredField: "test" })
+      }).not.toThrow()
+
+      // Invalid configuration - missing required field
+      expect(() => {
+        schemaNode.setup({ optionalField: 123 })
+      }).toThrow("Configuration validation failed")
+
+      // Invalid configuration - wrong type
+      expect(() => {
+        schemaNode.setup({ requiredField: 123 })
+      }).toThrow("Configuration validation failed")
+    })
+
+    test("should allow configuration without schema", () => {
+      // Node without schema should accept any configuration
+      expect(() => {
+        node.setup({ anyField: "anyValue" })
+      }).not.toThrow()
+    })
+  })
+
+  describe("Unified Node Model", () => {
+    test("should support isTrigger property", () => {
+      const triggerNode = new TestNode({
+        id: "trigger-1",
+        name: "trigger",
+        nodeType: "trigger",
+        version: 1,
+        position: [0, 0],
+        isTrigger: true,
+      })
+
+      expect(triggerNode.properties.isTrigger).toBe(true)
+    })
+
+    test("should support regular node without isTrigger", () => {
+      const regularNode = new TestNode({
+        id: "node-1",
+        name: "node",
+        nodeType: "test",
+        version: 1,
+        position: [0, 0],
+        isTrigger: false,
+      })
+
+      expect(regularNode.properties.isTrigger).toBe(false)
+    })
+  })
 })

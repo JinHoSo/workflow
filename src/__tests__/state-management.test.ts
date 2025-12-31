@@ -176,5 +176,119 @@ describe("State Management", () => {
     const importedState = newStateManager.getNodeState("node1")
     expect(importedState).toEqual(exported.state["node1"])
   })
+
+  test("should persist and recover state using persistence hook", async () => {
+    const workflow = new Workflow("test-workflow")
+
+    const trigger = new ManualTrigger({
+      id: "trigger-1",
+      name: "trigger",
+      nodeType: "manual-trigger",
+      version: 1,
+      position: [0, 0],
+    })
+
+    const node1 = new TestNode({
+      id: "node-1",
+      name: "node1",
+      nodeType: "test",
+      version: 1,
+      position: [100, 0],
+    })
+
+    workflow.addNode(trigger)
+    workflow.addNode(node1)
+    workflow.linkNodes("trigger", "output", "node1", "input")
+
+    trigger.setup({})
+    node1.setup({})
+
+    // Mock persistence hook
+    let persistedState: { state: import("../interfaces/execution-state").ExecutionState; metadata: Record<string, import("../interfaces/execution-state").NodeExecutionMetadata> } | undefined
+
+    const persistenceHook: import("../interfaces/execution-state").StatePersistenceHook = {
+      async persist(_workflowId, state, metadata) {
+        persistedState = { state, metadata }
+      },
+      async recover(_workflowId) {
+        return persistedState
+      },
+    }
+
+    const engine = new ExecutionEngine(workflow, persistenceHook)
+    trigger.setExecutionEngine(engine)
+
+    trigger.trigger({ output: { value: 15 } })
+
+    // Wait for execution
+    let attempts = 0
+    while (workflow.state !== WorkflowState.Completed && workflow.state !== WorkflowState.Failed && attempts < 100) {
+      await new Promise((resolve) => setTimeout(resolve, 10))
+      attempts++
+    }
+
+    // State should be persisted
+    expect(persistedState).toBeDefined()
+    expect(persistedState?.state["node1"]).toBeDefined()
+
+    // Recover state
+    const recoveredState = await persistenceHook.recover(workflow.id)
+
+    expect(recoveredState).toBeDefined()
+    expect(recoveredState?.state["node1"]).toEqual(persistedState?.state["node1"])
+  })
+
+  test("should handle persistence errors gracefully", async () => {
+    const workflow = new Workflow("test-workflow")
+
+    const trigger = new ManualTrigger({
+      id: "trigger-1",
+      name: "trigger",
+      nodeType: "manual-trigger",
+      version: 1,
+      position: [0, 0],
+    })
+
+    const node1 = new TestNode({
+      id: "node-1",
+      name: "node1",
+      nodeType: "test",
+      version: 1,
+      position: [100, 0],
+    })
+
+    workflow.addNode(trigger)
+    workflow.addNode(node1)
+    workflow.linkNodes("trigger", "output", "node1", "input")
+
+    trigger.setup({})
+    node1.setup({})
+
+    // Mock persistence hook that throws errors
+    const persistenceHook: import("../interfaces/execution-state").StatePersistenceHook = {
+      async persist() {
+        throw new Error("Persistence failed")
+      },
+      async recover() {
+        throw new Error("Recovery failed")
+      },
+    }
+
+    const engine = new ExecutionEngine(workflow, persistenceHook)
+    trigger.setExecutionEngine(engine)
+
+    // Should not throw - errors should be handled gracefully
+    trigger.trigger({ output: { value: 20 } })
+
+    // Wait for execution
+    let attempts = 0
+    while (workflow.state !== WorkflowState.Completed && workflow.state !== WorkflowState.Failed && attempts < 100) {
+      await new Promise((resolve) => setTimeout(resolve, 10))
+      attempts++
+    }
+
+    // Execution should complete despite persistence errors
+    expect(workflow.state).toBe(WorkflowState.Completed)
+  })
 })
 

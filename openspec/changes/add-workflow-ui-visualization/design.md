@@ -315,3 +315,4 @@ interface WorkflowCanvasProps {
 5. **Q**: How should we handle very long node names?
    - **A**: Truncate with ellipsis and show full name on hover tooltip.
 
+

@@ -29,7 +29,7 @@ describe("Schema Validation", () => {
       })
 
       expect(() => {
-        node.setup({ invalid: "property" } as any)
+        node.setup({ invalid: "property" })
       }).toThrow()
     })
 
@@ -43,7 +43,7 @@ describe("Schema Validation", () => {
       })
 
       expect(() => {
-        node.setup({} as any)
+        node.setup({})
       }).toThrow()
     })
   })
@@ -79,7 +79,7 @@ describe("Schema Validation", () => {
         node.setup({
           method: "INVALID",
           url: "https://example.com",
-        } as any)
+        })
       }).toThrow()
     })
 
@@ -166,7 +166,7 @@ describe("Schema Validation", () => {
             type: "minute",
             second: 100, // Invalid: should be 0-59
           },
-        } as any)
+        })
       }).toThrow()
     })
 
@@ -187,6 +187,55 @@ describe("Schema Validation", () => {
           },
         })
       }).not.toThrow()
+    })
+
+    test("should reject invalid interval value", () => {
+      const trigger = new ScheduleTrigger({
+        id: "trigger-1",
+        name: "schedule-trigger",
+        nodeType: "schedule-trigger",
+        version: 1,
+        position: [0, 0],
+      })
+
+      expect(() => {
+        trigger.setup({
+          schedule: {
+            type: "interval",
+            intervalMs: 0, // Invalid: must be >= 1
+          },
+        })
+      }).toThrow()
+    })
+  })
+
+  describe("Schema Validation Error Messages", () => {
+    test("should provide detailed error message for invalid configuration", () => {
+      const node = new JavaScriptNode({
+        id: "node-1",
+        name: "js-node",
+        nodeType: "javascript",
+        version: 1,
+        position: [0, 0],
+      })
+
+      expect(() => {
+        node.setup({ invalid: "property" })
+      }).toThrow()
+    })
+
+    test("should provide detailed error message for missing required field", () => {
+      const node = new JavaScriptNode({
+        id: "node-1",
+        name: "js-node",
+        nodeType: "javascript",
+        version: 1,
+        position: [0, 0],
+      })
+
+      expect(() => {
+        node.setup({})
+      }).toThrow()
     })
   })
 })
