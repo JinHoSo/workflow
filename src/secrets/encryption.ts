@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, randomBytes } from "crypto"
+import { createCipheriv, createDecipheriv, pbkdf2Sync, randomBytes } from "crypto"
 import type { SecretData } from "./types"
 
 /**
@@ -116,12 +116,11 @@ export function generateKey(): Buffer {
  * @returns Derived key (32 bytes) and salt
  */
 export function deriveKey(masterKey: string, salt?: Buffer): { key: Buffer; salt: Buffer } {
-  const crypto = require("crypto")
   const SALT_SIZE = 16
   const ITERATIONS = 100000
 
   const saltBuffer = salt || randomBytes(SALT_SIZE)
-  const key = crypto.pbkdf2Sync(masterKey, saltBuffer, ITERATIONS, KEY_SIZE, "sha256")
+  const key = pbkdf2Sync(masterKey, saltBuffer, ITERATIONS, KEY_SIZE, "sha256")
 
   return { key, salt: saltBuffer }
 }

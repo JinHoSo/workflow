@@ -313,7 +313,9 @@ describe("Error Scenarios", () => {
 
       // Manually corrupt state
       const stateManager = engine.getStateManager()
-      stateManager.setNodeState("test-node", { corrupted: "data" } as any)
+      // Create corrupted state that matches NodeOutput type structure
+      const corruptedState: NodeOutput = { output: { corrupted: "data" } }
+      stateManager.setNodeState("test-node", corruptedState)
 
       trigger.trigger()
 
