@@ -6,11 +6,14 @@ TBD - created by archiving change add-workflow-engine. Update Purpose after arch
 ### Requirement: Trigger Base Class
 The system SHALL provide a base Trigger class that extends Node and serves as the foundation for all trigger types.
 
+**Organization**: Each trigger implementation SHALL be organized in its own modular folder structure containing the trigger implementation, schema, utilities, and related files.
+
 #### Scenario: Trigger as node
 - **WHEN** a Trigger is created
 - **THEN** it SHALL be a valid Node instance
 - **AND** it SHALL have all node capabilities (ports, status, actions)
 - **AND** it SHALL have a trigger-specific execution method
+- **AND** it SHALL be organized in a modular folder structure with schema and related files
 
 #### Scenario: Trigger execution flow
 - **WHEN** trigger() is called on a trigger

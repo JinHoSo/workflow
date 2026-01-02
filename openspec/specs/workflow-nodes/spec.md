@@ -6,6 +6,8 @@ TBD - created by archiving change add-workflow-engine. Update Purpose after arch
 ### Requirement: Node Definition
 The system SHALL provide a BaseNode class that represents the fundamental execution unit in a workflow. BaseNode SHALL be an abstract class that provides common node functionality and defines abstract methods that concrete node implementations MUST implement.
 
+**Organization**: Each node implementation SHALL be organized in its own modular folder structure containing the node implementation, schema, and related files.
+
 #### Scenario: Create base node
 - **WHEN** a BaseNode instance is created
 - **THEN** it SHALL have a unique identifier
@@ -19,6 +21,7 @@ The system SHALL provide a BaseNode class that represents the fundamental execut
 - **THEN** it SHALL inherit all BaseNode functionality
 - **AND** it SHALL implement required abstract methods
 - **AND** it SHALL be usable as a node in workflows
+- **AND** the node implementation SHALL be organized in a modular folder structure with schema and related files
 
 #### Scenario: Abstract execution method
 - **WHEN** a class extends BaseNode
