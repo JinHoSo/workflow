@@ -8,7 +8,7 @@
 
 import { Workflow } from "../core/workflow"
 import { BaseNode } from "../core/base-node"
-import { ManualTrigger } from "../triggers/manual-trigger"
+import { ManualTrigger } from "../nodes/manual-trigger"
 import { ExecutionEngine } from "../execution/execution-engine"
 import type { NodeOutput } from "../interfaces"
 import type { ExecutionContext } from "../interfaces/execution-state"
@@ -109,7 +109,8 @@ describe("Performance Benchmarks", () => {
       // Sequential would be: 10 * 10ms + 10 * 10ms = 200ms
       // Allow up to 250ms to account for polling overhead (10ms per check), event loop delays, and test variability
       // The test uses polling which adds overhead, but parallel execution should still complete reasonably fast
-      expect(duration).toBeLessThan(250) // Accounts for test polling overhead while ensuring reasonable performance
+      expect(duration).toBeLessThan(250)
+      // Accounts for test polling overhead while ensuring reasonable performance
       console.log(`DAG execution time: ${duration}ms (20 nodes, 2 levels)`)
     }, 5000)
 

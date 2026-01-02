@@ -1,8 +1,8 @@
-import { BaseNode } from "../core/base-node"
-import type { NodeProperties, NodeConfiguration, DataRecord, NodeInput, NodeOutput } from "../interfaces"
-import type { ExecutionContext } from "../interfaces/execution-state"
-import { LinkType } from "../types"
-import { javascriptNodeSchema } from "../schemas/javascript-node-schema"
+import { BaseNode } from "../../core/base-node"
+import type { NodeProperties, NodeConfiguration, DataRecord, NodeInput, NodeOutput } from "../../interfaces"
+import type { ExecutionContext } from "../../interfaces/execution-state"
+import { LinkType } from "../../types"
+import { javascriptNodeSchema } from "./schema"
 
 /**
  * Node that executes user-provided JavaScript code
@@ -285,3 +285,4 @@ export class JavaScriptNode extends BaseNode {
     return { [defaultOutputPort]: {} }
   }
 }
+

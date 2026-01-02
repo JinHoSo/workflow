@@ -1,8 +1,8 @@
-import { BaseNode } from "../core/base-node"
-import type { NodeProperties, NodeConfiguration, DataRecord, NodeInput, NodeOutput } from "../interfaces"
-import type { ExecutionContext } from "../interfaces/execution-state"
-import { LinkType } from "../types"
-import { httpRequestNodeSchema } from "../schemas/http-request-node-schema"
+import { BaseNode } from "../../core/base-node"
+import type { NodeProperties, NodeConfiguration, DataRecord, NodeInput, NodeOutput } from "../../interfaces"
+import type { ExecutionContext } from "../../interfaces/execution-state"
+import { LinkType } from "../../types"
+import { httpRequestNodeSchema } from "./schema"
 
 /**
  * HTTP methods supported by the HTTP Request node

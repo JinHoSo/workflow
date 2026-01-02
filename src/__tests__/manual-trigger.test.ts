@@ -1,4 +1,4 @@
-import { ManualTrigger } from "../triggers/manual-trigger"
+import { ManualTrigger } from "../nodes/manual-trigger"
 import { JavaScriptNode } from "../nodes/javascript-execution-node"
 import { Workflow } from "../core/workflow"
 import { ExecutionEngine } from "../execution/execution-engine"

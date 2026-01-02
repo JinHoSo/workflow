@@ -1,7 +1,7 @@
 import { JavaScriptNode } from "../nodes/javascript-execution-node"
 import { HttpRequestNode } from "../nodes/http-request-node"
-import { ManualTrigger } from "../triggers/manual-trigger"
-import { ScheduleTrigger } from "../triggers/schedule-trigger"
+import { ManualTrigger } from "../nodes/manual-trigger"
+import { ScheduleTrigger } from "../nodes/schedule-trigger"
 
 describe("Schema Validation", () => {
   describe("JavaScriptNode", () => {

@@ -1,11 +1,11 @@
-import { TriggerNodeBase } from "./base-trigger"
-import type { NodeProperties, NodeConfiguration, NodeOutput } from "../interfaces"
-import type { ExecutionContext } from "../interfaces/execution-state"
-import type { ExecutionEngine } from "../execution/execution-engine"
-import { LinkType } from "../types"
-import { NodeState } from "../types"
-import { WorkflowState } from "../interfaces"
-import { manualTriggerSchema } from "../schemas/manual-trigger-schema"
+import { TriggerNodeBase } from "../../core/base-trigger"
+import type { NodeProperties, NodeConfiguration, NodeOutput } from "../../interfaces"
+import type { ExecutionContext } from "../../interfaces/execution-state"
+import type { ExecutionEngine } from "../../execution/execution-engine"
+import { LinkType } from "../../types"
+import { NodeState } from "../../types"
+import { WorkflowState } from "../../interfaces"
+import { manualTriggerSchema } from "./schema"
 
 /**
  * Manual trigger node that allows programmatic workflow execution
@@ -121,3 +121,4 @@ export class ManualTrigger extends TriggerNodeBase {
     return this.getDefaultData()
   }
 }
+

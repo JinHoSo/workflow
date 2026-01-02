@@ -14,7 +14,7 @@
 
 import { Workflow } from "../core/workflow"
 import { BaseNode } from "../core/base-node"
-import { ManualTrigger } from "../triggers/manual-trigger"
+import { ManualTrigger } from "../nodes/manual-trigger"
 import { JavaScriptNode } from "../nodes/javascript-execution-node"
 import { HttpRequestNode } from "../nodes/http-request-node"
 import { ExecutionEngine } from "../execution/execution-engine"
@@ -341,7 +341,7 @@ describe("Integration Tests", () => {
 
       // Invalid configuration
       expect(() => {
-        jsNode.setup({ invalid: "property" } as any)
+        jsNode.setup({ invalid: "property" })
       }).toThrow()
 
       const httpNode = new HttpRequestNode({
@@ -365,7 +365,7 @@ describe("Integration Tests", () => {
         httpNode.setup({
           method: "INVALID",
           url: "https://example.com",
-        } as any)
+        })
       }).toThrow()
     })
   })

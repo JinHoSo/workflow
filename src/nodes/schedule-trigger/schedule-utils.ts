@@ -6,8 +6,8 @@ import type {
   MonthScheduleConfig,
   YearScheduleConfig,
   IntervalScheduleConfig,
-} from "../interfaces/schedule"
-import { ScheduleValidationError } from "../interfaces/schedule"
+} from "../../interfaces/schedule"
+import { ScheduleValidationError } from "../../interfaces/schedule"
 
 /**
  * Validates a schedule configuration

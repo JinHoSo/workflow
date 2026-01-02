@@ -98,7 +98,6 @@ function generateArrayType(schema: JsonSchema, interfaceName: string): string {
 
   if (typeof itemsType === "string" && itemsType === "object" && items.properties) {
     nestedType = generateObjectType(items, itemTypeName)
-    itemTypeName = itemTypeName
   } else {
     itemTypeName = schemaToTypeScript(items, itemTypeName)
   }

@@ -1,7 +1,7 @@
 import { Workflow } from "../core/workflow"
 import { BaseNode } from "../core/base-node"
 import { ExecutionEngine } from "../execution/execution-engine"
-import { ManualTrigger } from "../triggers/manual-trigger"
+import { ManualTrigger } from "../nodes/manual-trigger"
 import { JavaScriptNode } from "../nodes/javascript-execution-node"
 import { NodeState } from "../types"
 import { WorkflowState } from "../interfaces"

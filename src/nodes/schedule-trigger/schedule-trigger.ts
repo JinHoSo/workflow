@@ -1,13 +1,13 @@
-import { TriggerNodeBase } from "./base-trigger"
-import type { NodeProperties, NodeConfiguration, NodeOutput } from "../interfaces"
-import type { ExecutionContext } from "../interfaces/execution-state"
-import type { ScheduleConfig } from "../interfaces/schedule"
-import { LinkType } from "../types"
-import { NodeState } from "../types"
-import { WorkflowState } from "../interfaces"
+import { TriggerNodeBase } from "../../core/base-trigger"
+import type { NodeProperties, NodeConfiguration, NodeOutput } from "../../interfaces"
+import type { ExecutionContext } from "../../interfaces/execution-state"
+import type { ScheduleConfig } from "../../interfaces/schedule"
+import { LinkType } from "../../types"
+import { NodeState } from "../../types"
+import { WorkflowState } from "../../interfaces"
 import { validateScheduleConfig, calculateNextExecution } from "./schedule-utils"
-import type { ExecutionEngine } from "../execution/execution-engine"
-import { scheduleTriggerSchema } from "../schemas/schedule-trigger-schema"
+import type { ExecutionEngine } from "../../execution/execution-engine"
+import { scheduleTriggerSchema } from "./schema"
 
 /**
  * Schedule trigger node that executes workflows on a time-based schedule

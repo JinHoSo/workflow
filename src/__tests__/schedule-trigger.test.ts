@@ -1,4 +1,4 @@
-import { ScheduleTrigger } from "../triggers/schedule-trigger"
+import { ScheduleTrigger } from "../nodes/schedule-trigger"
 import { Workflow } from "../core/workflow"
 import { ExecutionEngine } from "../execution/execution-engine"
 import { BaseNode } from "../core/base-node"
@@ -8,7 +8,7 @@ import type { ExecutionContext } from "../interfaces/execution-state"
 import { ScheduleValidationError } from "../interfaces/schedule"
 import { NodeState } from "../types"
 import { WorkflowState } from "../interfaces"
-import { validateScheduleConfig, calculateNextExecution } from "../triggers/schedule-utils"
+import { validateScheduleConfig, calculateNextExecution } from "../nodes/schedule-trigger"
 
 class TestNode extends BaseNode {
   protected async process(context: ExecutionContext): Promise<NodeOutput> {

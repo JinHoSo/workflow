@@ -1,4 +1,4 @@
-import { BaseNode } from "../core/base-node"
+import { BaseNode } from "./base-node"
 import type { NodeOutput, NodeProperties } from "../interfaces"
 import type { WorkflowTrigger } from "../interfaces"
 import type { ExecutionContext } from "../interfaces/execution-state"

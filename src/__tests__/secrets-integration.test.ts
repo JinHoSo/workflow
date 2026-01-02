@@ -1,6 +1,6 @@
 import { Workflow } from "../core/workflow"
 import { ExecutionEngine } from "../execution/execution-engine"
-import { ManualTrigger } from "../triggers/manual-trigger"
+import { ManualTrigger } from "../nodes/manual-trigger"
 import { HttpRequestNode } from "../nodes/http-request-node"
 import { SecretService } from "../secrets/secret-service"
 import { FileSecretRegistry } from "../secrets/secret-registry"

@@ -1,4 +1,4 @@
-import type { JsonSchema } from "./schema-validator"
+import type { JsonSchema } from "../../schemas/schema-validator"
 
 /**
  * JSON Schema for JavaScriptNode configuration
