@@ -80,6 +80,20 @@ export class ScheduleTrigger extends TriggerNodeBase {
 
 
   /**
+   * Sets the execution engine for workflow execution
+   * Overrides base class to reactivate schedule after engine is set
+   * @param engine - ExecutionEngine instance to use for workflow execution
+   */
+  setExecutionEngine(engine: ExecutionEngine): void {
+    super.setExecutionEngine(engine)
+    // Reactivate schedule if it's already configured
+    // This ensures the schedule is active after the engine is set
+    if (this.scheduleConfig) {
+      this.activateSchedule()
+    }
+  }
+
+  /**
    * Sets the callback function to be called when trigger activates
    * This callback should start the workflow execution
    * @param callback - Function that receives execution data and starts workflow
@@ -134,9 +148,13 @@ export class ScheduleTrigger extends TriggerNodeBase {
 
   private executeEngine(): void {
     if (this.executionEngine) {
+      console.log(`[ScheduleTrigger] Executing workflow at ${new Date().toISOString()}`)
       this.executionEngine.execute(this.properties.name).catch((error) => {
         this.error = error instanceof Error ? error : new Error(String(error))
+        console.error(`[ScheduleTrigger] Workflow execution failed:`, error)
       })
+    } else {
+      console.warn(`[ScheduleTrigger] Execution engine not set, skipping workflow execution`)
     }
   }
 
@@ -187,6 +205,9 @@ export class ScheduleTrigger extends TriggerNodeBase {
     // Schedule execution (use setTimeout for one-time execution, then reschedule)
     // Only schedule if delay is positive and reasonable (not more than 1 year)
     if (delayMs > 0 && delayMs < 365 * 24 * 60 * 60 * 1000) {
+      console.log(
+        `[ScheduleTrigger] Scheduled next execution at ${this.nextExecutionTime?.toISOString()} (in ${Math.round(delayMs / 1000)}s)`,
+      )
       this.scheduleTimer = setTimeout(() => {
         try {
           // activate() will handle workflow execution via executionEngine.execute()
@@ -196,8 +217,13 @@ export class ScheduleTrigger extends TriggerNodeBase {
           // If workflow is already running, silently skip this execution
           // The error is expected and doesn't need to be propagated
           // The next scheduled execution will try again
+          console.warn(`[ScheduleTrigger] Error during scheduled execution:`, error)
         }
       }, delayMs)
+    } else {
+      console.warn(
+        `[ScheduleTrigger] Invalid delay ${delayMs}ms, not scheduling. Next execution time: ${this.nextExecutionTime?.toISOString()}`,
+      )
     }
   }
 

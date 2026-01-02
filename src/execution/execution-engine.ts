@@ -13,6 +13,7 @@ import { executionProtocol } from "../protocols/execution-impl"
 import { errorHandlingProtocol } from "../protocols/error-handling-impl"
 import { createRetryStrategy } from "./retry-strategy"
 import { ExecutionStateManager } from "./execution-state-manager"
+import type { SecretResolver } from "../secrets/interfaces"
 
 /**
  * Execution engine that orchestrates workflow execution
@@ -28,15 +29,19 @@ export class ExecutionEngine {
   private stateManager: ExecutionStateManager = new ExecutionStateManager()
   /** Optional state persistence hook */
   private persistenceHook?: StatePersistenceHook
+  /** Optional secret resolver for resolving secret references in node configurations */
+  private secretResolver?: SecretResolver
 
   /**
    * Creates a new ExecutionEngine
    * @param workflow - Workflow to execute
    * @param persistenceHook - Optional state persistence hook
+   * @param secretResolver - Optional secret resolver for secret references
    */
-  constructor(workflow: IWorkflow, persistenceHook?: StatePersistenceHook) {
+  constructor(workflow: IWorkflow, persistenceHook?: StatePersistenceHook, secretResolver?: SecretResolver) {
     this.workflow = workflow
     this.persistenceHook = persistenceHook
+    this.secretResolver = secretResolver
   }
 
   /**
@@ -96,6 +101,15 @@ export class ExecutionEngine {
       throw new Error(`Node ${triggerNodeName} is not a trigger node`)
     }
 
+    // Set secret resolver on all nodes if available
+    if (this.secretResolver) {
+      for (const node of Object.values(this.workflow.nodes)) {
+        if (node instanceof BaseNode) {
+          node.setSecretResolver(this.secretResolver)
+        }
+      }
+    }
+
     // Reset workflow to clean state before execution
     // This resets regular nodes (non-trigger nodes) only
     // Trigger nodes are preserved to maintain their state and configuration
@@ -109,6 +123,7 @@ export class ExecutionEngine {
     this.stateManager.clear()
 
     this.workflow.state = WorkflowState.Running
+    console.log(`[ExecutionEngine] Starting workflow execution from trigger: ${triggerNodeName}`)
 
     // Try to recover state from persistence if available
     if (this.persistenceHook) {
@@ -183,8 +198,10 @@ export class ExecutionEngine {
       }
 
       this.workflow.state = WorkflowState.Completed
+      console.log(`[ExecutionEngine] Workflow execution completed successfully`)
     } catch (error) {
       this.workflow.state = WorkflowState.Failed
+      console.error(`[ExecutionEngine] Workflow execution failed:`, error)
       throw error
     }
   }
@@ -217,12 +234,21 @@ export class ExecutionEngine {
       return normalized.length > 0
     })
 
-      // Nodes without inputs can still run (e.g., triggers, nodes that generate data)
-      if (hasInputData || node.inputs.length === 0) {
+    // Log input data status for debugging
+    if (!hasInputData && node.inputs.length > 0) {
+      console.warn(
+        `[ExecutionEngine] Node ${nodeName} has no input data. Input ports: ${node.inputs.map((i) => i.name).join(", ")}`,
+      )
+      console.warn(`[ExecutionEngine] Available input data keys: ${Object.keys(context.input).join(", ")}`)
+    }
+
+    // Nodes without inputs can still run (e.g., triggers, nodes that generate data)
+    if (hasInputData || node.inputs.length === 0) {
         // Record execution start
         this.stateManager.recordNodeStart(nodeName)
 
         // Execute with retry if configured
+        console.log(`[ExecutionEngine] Executing node: ${nodeName}`)
         if (node.properties.retryOnFail && node.properties.maxRetries) {
           await this.runNodeWithRetry(node, context, nodeName)
         } else {
@@ -230,6 +256,7 @@ export class ExecutionEngine {
           this.nodePromises.set(nodeName, nodePromise)
           await nodePromise
         }
+        console.log(`[ExecutionEngine] Node ${nodeName} completed`)
 
         // Update execution state with node output
         if (node instanceof BaseNode) {
@@ -237,8 +264,17 @@ export class ExecutionEngine {
           this.stateManager.recordNodeEnd(nodeName, finalState)
           if (finalState === NodeState.Completed) {
             const output = node.getAllResults()
+            console.log(
+              `[ExecutionEngine] Storing output for ${nodeName}:`,
+              Object.keys(output),
+              output,
+            )
             this.executionState[nodeName] = output
             this.stateManager.setNodeState(nodeName, output)
+          } else {
+            console.warn(
+              `[ExecutionEngine] Node ${nodeName} completed with state ${finalState}, not storing output`,
+            )
           }
         }
 
@@ -369,6 +405,7 @@ export class ExecutionEngine {
       })
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error))
+      console.error(`[ExecutionEngine] Node ${node.properties.name} execution failed:`, err.message)
       // Use error handling protocol for consistent error handling
       errorHandlingProtocol.handleError(node, err)
       if (errorHandlingProtocol.shouldStopExecution(node, err)) {
@@ -475,14 +512,34 @@ export class ExecutionEngine {
               const sourceOutput = this.getNodeOutput(sourceNode, link.outputPortName)
               // Normalize to array
               const normalized = Array.isArray(sourceOutput) ? sourceOutput : [sourceOutput]
-              portData.push(...normalized)
+              // Filter out undefined/null values
+              const validData = normalized.filter((item) => item !== undefined && item !== null)
+              if (validData.length > 0) {
+                portData.push(...validData)
+              }
+              console.log(
+                `[ExecutionEngine] Collected input for ${nodeName} from ${link.targetNode}:${link.outputPortName} -> ${inputName} (${validData.length} items, raw: ${normalized.length} items)`,
+              )
+              if (validData.length === 0 && normalized.length > 0) {
+                console.warn(
+                  `[ExecutionEngine] All items filtered out (undefined/null) for ${nodeName} from ${link.targetNode}:${link.outputPortName}`,
+                )
+              }
+            } else {
+              console.warn(
+                `[ExecutionEngine] Source node ${link.targetNode} is not completed (state: ${sourceNode.state}) for ${nodeName}:${inputName}`,
+              )
             }
+          } else {
+            console.warn(`[ExecutionEngine] Source node ${link.targetNode} not found for ${nodeName}:${inputName}`)
           }
         }
 
         if (portData.length > 0) {
           // Single item: return as object, multiple items: return as array
           inputData[inputName] = portData.length === 1 ? portData[0] : portData
+        } else {
+          console.warn(`[ExecutionEngine] No input data collected for ${nodeName}:${inputName}`)
         }
       }
     }
@@ -538,14 +595,30 @@ export class ExecutionEngine {
       const nodeOutput = this.executionState[nodeName]
       const portOutput = nodeOutput[outputPortName]
       if (portOutput !== undefined) {
+        console.log(
+          `[ExecutionEngine] getNodeOutput: Found in executionState for ${nodeName}:${outputPortName}`,
+          typeof portOutput,
+        )
         return portOutput
+      } else {
+        console.log(
+          `[ExecutionEngine] getNodeOutput: No data in executionState for ${nodeName}:${outputPortName}, available ports:`,
+          Object.keys(nodeOutput),
+        )
       }
     }
 
     if (node instanceof BaseNode) {
-      return node.getResult(outputPortName)
+      const result = node.getResult(outputPortName)
+      console.log(
+        `[ExecutionEngine] getNodeOutput: Got from BaseNode.getResult for ${nodeName}:${outputPortName}`,
+        typeof result,
+        result === undefined ? "undefined" : result === null ? "null" : Array.isArray(result) ? `array[${result.length}]` : "object",
+      )
+      return result
     }
 
+    console.warn(`[ExecutionEngine] getNodeOutput: No output found for ${node.properties.name}:${outputPortName}`)
     return []
   }
 

@@ -12,6 +12,7 @@ import { NodeState } from "../types"
 import { LinkType } from "../types"
 import { schemaValidator } from "../schemas/schema-validator"
 import type { JsonSchema } from "../schemas/schema-validator"
+import type { SecretResolver } from "../secrets/interfaces"
 
 /**
  * Abstract base class for all workflow nodes
@@ -29,6 +30,8 @@ export abstract class BaseNode implements Node {
   protected resultData: NodeOutput = {}
   /** Configuration schema for validation (optional, can be set by subclasses) */
   protected configurationSchema?: JsonSchema
+  /** Secret resolver for resolving secret references (optional, set by workflow execution engine) */
+  protected secretResolver?: SecretResolver
 
   /**
    * Creates a new WorkflowNodeBase instance
@@ -146,8 +149,42 @@ export abstract class BaseNode implements Node {
   }
 
   /**
+   * Sets the secret resolver for this node
+   * Called by the workflow execution engine to enable secret resolution
+   * @param resolver - Secret resolver instance
+   */
+  setSecretResolver(resolver: SecretResolver): void {
+    this.secretResolver = resolver
+  }
+
+  /**
+   * Resolves secret references in the node configuration
+   * Called automatically before node execution
+   * @param config - Configuration to resolve
+   * @returns Resolved configuration with secret references replaced
+   */
+  protected async resolveSecretsInConfig(config: NodeConfiguration): Promise<NodeConfiguration> {
+    if (!this.secretResolver) {
+      // No resolver available, return config as-is
+      return config
+    }
+
+    try {
+      // Convert config to Record<string, unknown> for resolver
+      const configRecord = config as Record<string, unknown>
+      const resolved = await this.secretResolver.resolveConfig(configRecord)
+      return resolved as NodeConfiguration
+    } catch (error) {
+      throw new Error(
+        `Failed to resolve secrets in configuration: ${error instanceof Error ? error.message : String(error)}`,
+      )
+    }
+  }
+
+  /**
    * Runs the node with execution context
    * Calls process() and handles state transitions and errors
+   * Resolves secret references in configuration before execution
    * @param context - Execution context containing input data and state
    * @returns Output data (port name based)
    * @throws Error if node is not in Idle state or execution fails
@@ -159,7 +196,18 @@ export abstract class BaseNode implements Node {
 
     try {
       this.setState(NodeState.Running)
+
+      // Resolve secrets in configuration before execution
+      const resolvedConfig = await this.resolveSecretsInConfig(this.config)
+      // Update config with resolved values (temporary for this execution)
+      const originalConfig = this.config
+      this.config = resolvedConfig
+
       const result = await this.process(context)
+
+      // Restore original config (with secret references) after execution
+      this.config = originalConfig
+
       this.resultData = result
       this.setState(NodeState.Completed)
       return result

@@ -7,4 +7,5 @@ export * from "./core/node-type-registry"
 export * from "./triggers"
 export * from "./nodes"
 export * from "./execution"
+export * from "./secrets"
 

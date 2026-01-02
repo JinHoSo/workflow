@@ -37,13 +37,13 @@ export interface HttpRequestNodeConfiguration extends NodeConfiguration {
   bodyFormat?: BodyFormat
   /** Authentication type */
   authType?: AuthType
-  /** Username for Basic Auth */
+  /** Username for Basic Auth (supports secret references: {{secrets.secretName.username}}) */
   basicAuthUsername?: string
-  /** Password for Basic Auth */
+  /** Password for Basic Auth (supports secret references: {{secrets.secretName.password}}) */
   basicAuthPassword?: string
-  /** Bearer token for Bearer Auth */
+  /** Bearer token for Bearer Auth (supports secret references: {{secrets.secretName.token}}) */
   bearerToken?: string
-  /** Custom auth headers */
+  /** Custom auth headers (supports secret references in header values: {{secrets.secretName.fieldName}}) */
   customAuthHeaders?: Record<string, string>
   /** Request timeout in milliseconds (default: 30000) */
   timeout?: number
@@ -232,9 +232,11 @@ export class HttpRequestNode extends BaseNode {
         },
       }
 
+      console.log(`[HttpRequestNode] ${this.properties.name} request successful:`, response.status, requestParams.url)
       return { output: responseData }
     } catch (error) {
       // Handle errors and output to error port
+      console.error(`[HttpRequestNode] ${this.properties.name} request failed:`, error)
       const errorData = this.formatError(error, config)
       return { error: errorData }
     }
@@ -490,12 +492,20 @@ export class HttpRequestNode extends BaseNode {
     const contentType = response.headers.get("content-type") || ""
 
     if (contentType.includes("application/json")) {
+      // Read text first, then try to parse as JSON
+      // This allows us to return the text if JSON parsing fails
+      const text = await response.text()
+      if (!text) {
+        return null
+      }
       try {
-        const text = await response.text()
-        return text ? (JSON.parse(text) as DataRecord) : null
-      } catch {
+        return JSON.parse(text) as DataRecord
+      } catch (parseError) {
         // If JSON parsing fails, return as text
-        return await response.text()
+        console.warn(
+          `[HttpRequestNode] Failed to parse JSON response, returning as text: ${parseError instanceof Error ? parseError.message : String(parseError)}`,
+        )
+        return text
       }
     } else if (contentType.startsWith("text/")) {
       return await response.text()

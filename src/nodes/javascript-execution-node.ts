@@ -197,8 +197,18 @@ export class JavaScriptNode extends BaseNode {
     `
 
     try {
-      const func = new Function("input", "inputAll", "state", "output", wrappedCode)
-      const returnValue = await func(input, inputAll, state, output)
+      // Bind console to global scope so JavaScript code can use console.log
+      const func = new Function(
+        "input",
+        "inputAll",
+        "state",
+        "output",
+        "console",
+        `
+        ${wrappedCode}
+      `,
+      )
+      const returnValue = await func(input, inputAll, state, output, console)
 
       // If code returns a value, use it as output
       // Otherwise, use the items collected via output() calls
