@@ -29,6 +29,11 @@ export { getMasterKey, getSecretsStoragePath, ensureSecretsDirectory } from "./k
 
 // Registry implementation
 export { FileSecretRegistry } from "./secret-registry"
+export { SqliteSecretRegistry } from "./sqlite-secret-registry"
+
+// Storage factory
+export { createSecretRegistry, getDefaultStorageBackend } from "./storage-factory"
+export type { StorageBackend } from "./storage-factory"
 
 // Resolver implementation
 export { SecretResolverImpl } from "./secret-resolver"

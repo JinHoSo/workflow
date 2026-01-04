@@ -25,16 +25,19 @@ The Secrets management system enables secure storage and reuse of authentication
 ## Decisions
 
 ### Decision: Secret Storage Architecture
-**What**: Store secrets in encrypted format with a secret registry that maps secret names to encrypted values
+**What**: Store secrets in encrypted format with a secret registry that maps secret names to encrypted values. Default to SQLite database storage with file-based storage as fallback option.
 **Why**:
 - Centralized management
 - Encryption at rest
 - Easy reference by name
 - Can be extended with external providers
+- SQLite provides better performance and query capabilities than file-based storage
+- File-based fallback ensures operation in environments where SQLite is unavailable
 **Alternatives considered**:
 - Inline storage only: Rejected - security risk
 - External-only: Rejected - need local fallback
-- Database storage: Considered but deferred - file-based initially
+- File-based only: Rejected - SQLite provides better performance and query capabilities
+- PostgreSQL/MySQL: Considered but rejected - too heavy for default, can be added as external provider
 
 ### Decision: Encryption Method
 **What**: Use AES-256-GCM for symmetric encryption with a master key
@@ -132,11 +135,27 @@ The Secrets management system enables secure storage and reuse of authentication
 - Support key rotation (future enhancement)
 - Consider external key management services
 
+### Decision: Secret Storage Location
+**What**: Store secrets in a directory relative to the code execution folder (process.cwd()), not in /tmp or user home directory
+**Why**:
+- Secrets should be co-located with the workflow execution context
+- Avoids permission issues with system directories
+- Makes secrets portable with the codebase
+- Easier to manage in containerized environments
+- Avoids conflicts with multiple instances running from different directories
+**Alternatives considered**:
+- User home directory (~/.workflow/secrets): Rejected - not portable, conflicts with multiple instances
+- /tmp directory: Rejected - temporary, cleared on reboot, security concerns
+- System config directory: Rejected - permission issues, not portable
+
 ### Risk: Secret Storage Location
 **Mitigation**:
-- Use secure file permissions
-- Support environment-specific storage paths
+- Use secure file permissions for both SQLite database and file-based storage
+- Store files relative to process.cwd() (code execution directory)
+- Support environment variable override (WORKFLOW_SECRETS_STORAGE_PATH) for custom locations
+- Support storage backend selection via configuration
 - Document security best practices
+- Provide automatic fallback to file-based storage if SQLite initialization fails
 
 ### Risk: Performance Impact
 **Mitigation**:
@@ -155,8 +174,8 @@ The Secrets management system enables secure storage and reuse of authentication
 **Rationale**: Strong security with acceptable performance
 
 ### Trade-off: Secret Storage Format
-**Decision**: JSON file with encrypted values initially
-**Rationale**: Simple, portable, can migrate to database later
+**Decision**: SQLite database with encrypted values as default, JSON file with encrypted values as fallback
+**Rationale**: SQLite provides better performance, query capabilities, and atomic operations. File-based storage remains available as fallback for environments where SQLite cannot be used (e.g., read-only filesystems, permission constraints).
 
 ### Trade-off: Secret Sharing Scope
 **Decision**: Share secrets across all workflows in the same environment

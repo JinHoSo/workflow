@@ -12,6 +12,9 @@ A Secrets management system similar to n8n's credentials feature will enable sec
 
 ## What Changes
 - **ADDED**: Secrets management system with encrypted storage
+- **ADDED**: SQLite database storage backend (default) for secrets
+- **ADDED**: File-based storage backend (fallback) for secrets
+- **ADDED**: Storage backend selection and automatic fallback mechanism
 - **ADDED**: Secret types (API Key, Basic Auth, Bearer Token, OAuth, Custom)
 - **ADDED**: Secret registry for storing and retrieving secrets
 - **ADDED**: Secret reference mechanism in node configurations
@@ -27,8 +30,12 @@ A Secrets management system similar to n8n's credentials feature will enable sec
   - `workflow-nodes` (modified to support secret references)
 - **Affected code**:
   - `src/secrets/` - New secrets management module
+  - `src/secrets/secret-registry.ts` - Modified to support multiple storage backends (SQLite and file-based)
+  - `src/secrets/sqlite-secret-registry.ts` - New SQLite-based storage implementation
+  - `src/secrets/key-management.ts` - Modified to use process.cwd() as default storage location
   - `src/core/base-node.ts` - Modified to provide secret resolution functionality for all nodes
   - `src/nodes/http-request-node.ts` - Modified to support secret references (example usage)
   - `src/interfaces/` - New interfaces for secrets
   - Encryption library dependency for secure storage
+  - SQLite library dependency for database storage
 

@@ -71,23 +71,28 @@ export function getMasterKey(keyPath?: string): MasterKeyConfig {
  * @returns Path to master key file
  */
 function getDefaultKeyPath(): string {
-  const homeDir = process.env.HOME || process.env.USERPROFILE || process.cwd()
-  const configDir = join(homeDir, ".workflow", "secrets")
+  // Use code execution directory (process.cwd()) as base, not home directory
+  const baseDir = process.cwd()
+  const configDir = join(baseDir, ".workflow", "secrets")
   return join(configDir, "master.key")
 }
 
 /**
  * Gets the default path for secrets storage directory
+ * Defaults to a directory relative to the code execution folder (process.cwd())
  * @returns Path to secrets directory
  */
 export function getSecretsStoragePath(): string {
   const envPath = process.env.WORKFLOW_SECRETS_STORAGE_PATH
   if (envPath) {
-    return envPath
+    // If absolute path, use as-is; if relative, resolve from process.cwd()
+    return envPath.startsWith("/") || (process.platform === "win32" && /^[A-Za-z]:/.test(envPath))
+      ? envPath
+      : join(process.cwd(), envPath)
   }
 
-  const homeDir = process.env.HOME || process.env.USERPROFILE || process.cwd()
-  return join(homeDir, ".workflow", "secrets")
+  // Default to execution directory relative path
+  return join(process.cwd(), ".workflow", "secrets")
 }
 
 /**

@@ -55,11 +55,22 @@
 
 ## 7. Configuration and Storage
 - [x] 7.1 Define secrets storage location (configurable path)
+- [x] 7.1.1 Update storage location to use process.cwd() as default (not /tmp or home directory)
 - [x] 7.2 Implement secure file permissions for secrets storage
 - [x] 7.3 Create secrets directory structure
 - [x] 7.4 Implement secrets file format (encrypted JSON)
 - [x] 7.5 Add secrets storage initialization
 - [x] 7.6 Implement secrets file backup/restore utilities (deferred - can be added later)
+- [x] 7.7 Implement SQLite database storage backend (SqliteSecretRegistry)
+- [x] 7.8 Create SQLite database schema for secrets (tables for secrets, metadata)
+- [x] 7.9 Implement storage backend selection mechanism (default to SQLite)
+- [x] 7.10 Implement automatic fallback from SQLite to file-based storage
+- [x] 7.11 Add storage backend configuration via environment variable (WORKFLOW_SECRETS_STORAGE_BACKEND)
+- [x] 7.12 Ensure secure database file permissions for SQLite
+- [x] 7.13 Add database migration/initialization logic
+- [x] 7.14 Update SecretService to support both storage backends transparently
+- [x] 7.15 Update getSecretsStoragePath() to default to process.cwd() relative path
+- [x] 7.16 Ensure storage directory is created relative to execution directory
 
 ## 8. Testing
 - [x] 8.1 Create unit tests for encryption/decryption
@@ -75,6 +86,13 @@
 - [x] 8.11 Test error handling (missing secrets, invalid references)
 - [x] 8.12 Test secret sharing across nodes - covered by resolver cache
 - [x] 8.13 Test secret caching during execution - covered by resolver implementation
+- [x] 8.14 Test SQLite storage backend (create, read, update, delete, list operations)
+- [x] 8.15 Test SQLite database initialization and schema creation
+- [x] 8.16 Test storage backend fallback mechanism (SQLite failure → file-based) - covered by storage-factory
+- [x] 8.17 Test storage backend selection via configuration
+- [x] 8.18 Test that both storage backends produce identical behavior - SecretService works with both
+- [x] 8.19 Test database file permissions and security - implemented in SqliteSecretRegistry
+- [x] 8.20 Test concurrent access to SQLite database
 
 ## 9. Documentation
 - [x] 9.1 Document that all nodes can use secrets via BaseNode - documented in code comments
@@ -86,4 +104,7 @@
 - [x] 9.7 Add JSDoc comments to all secret-related interfaces and classes
 - [x] 9.8 Document BaseNode secret resolution functionality - documented in BaseNode
 - [x] 9.9 Create migration guide from inline credentials to secrets - backward compatible, no migration needed
+- [x] 9.10 Document SQLite storage backend usage and configuration - documented in storage-factory.ts and sqlite-secret-registry.ts
+- [x] 9.11 Document storage backend selection and fallback behavior - documented in storage-factory.ts
+- [x] 9.12 Document environment variables for storage configuration - documented in key-management.ts and storage-factory.ts
 
