@@ -253,6 +253,88 @@ if (!result.compliant) {
 
 See [PROTOCOLS.md](./docs/PROTOCOLS.md) for detailed protocol usage patterns.
 
+## CLI Tools
+
+The Workflow Engine includes a comprehensive CLI for development:
+
+### Installation
+
+```bash
+cd packages/cli
+yarn install
+yarn build
+```
+
+### Available Commands
+
+```bash
+# Create a new node
+workflow create:node <name> [--template <basic|http|trigger>]
+
+# Create a new plugin
+workflow create:plugin <name>
+
+# Build plugin/node
+workflow build [--watch]
+
+# Run tests
+workflow test [--watch] [--coverage]
+
+# Validate protocol compliance
+workflow validate [--format json] [--suggest]
+
+# Publish plugin
+workflow publish [--dry-run] [--bump <patch|minor|major>]
+
+# Search plugins
+workflow search [query] [--category <cat>] [--node-type <type>]
+
+# Install plugin
+workflow install <name> [--version <ver>]
+
+# List plugins
+workflow list
+
+# Show plugin info
+workflow info <name>
+
+# Update plugin
+workflow update <name>
+
+# Remove plugin
+workflow remove <name>
+
+# Development mode with hot reloading
+workflow dev [--watch <dirs>]
+```
+
+### Quick Start
+
+```bash
+# Create your first plugin
+workflow create:plugin my-plugin
+cd my-plugin
+
+# Create a node
+workflow create:node my-node
+
+# Build and test
+workflow build
+workflow test
+
+# Validate
+workflow validate
+
+# Publish
+workflow publish
+```
+
+For detailed documentation, see:
+- [Plugin Development Guide](./docs/PLUGIN_DEVELOPMENT.md)
+- [Node Development Tutorial](./docs/NODE_DEVELOPMENT_TUTORIAL.md)
+- [Best Practices](./docs/BEST_PRACTICES.md)
+- [Contributing Guide](./CONTRIBUTING.md)
+
 ## Version Management
 
 Manage node type versions with compatibility tracking and migration:

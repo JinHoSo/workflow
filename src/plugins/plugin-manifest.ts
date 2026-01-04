@@ -16,6 +16,28 @@ export interface PluginManifest {
   dependencies?: string[]
   /** Node types provided by this plugin */
   nodeTypes: string[]
+  /** Plugin category */
+  category?: string
+  /** Plugin tags for search and filtering */
+  tags?: string[]
+  /** Path to plugin icon */
+  icon?: string
+  /** Node type metadata */
+  nodeTypeMetadata?: Record<
+    string,
+    {
+      /** Display name for the node type */
+      displayName?: string
+      /** Description for the node type */
+      description?: string
+      /** Category for the node type */
+      category?: string
+      /** Tags for the node type */
+      tags?: string[]
+      /** Icon path for the node type */
+      icon?: string
+    }
+  >
 }
 
 /**

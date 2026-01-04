@@ -1,5 +1,12 @@
+import * as path from "path"
 import type { Plugin } from "./plugin-manifest"
 import type { NodeTypeRegistry } from "../interfaces/node-type"
+import { discoverPlugins, type DiscoveryOptions, type DiscoveredPlugin } from "./plugin-discovery"
+
+/**
+ * Plugin loading strategy
+ */
+export type LoadingStrategy = "eager" | "lazy"
 
 /**
  * Plugin registry for managing and loading plugins
@@ -8,6 +15,8 @@ import type { NodeTypeRegistry } from "../interfaces/node-type"
 export class PluginRegistry {
   private plugins: Map<string, Plugin> = new Map()
   private nodeTypeRegistry?: NodeTypeRegistry
+  private loadingStrategy: LoadingStrategy = "eager"
+  private discoveredPlugins: Map<string, DiscoveredPlugin> = new Map()
 
   /**
    * Sets the node type registry to use for plugin node type registration
@@ -141,6 +150,95 @@ export class PluginRegistry {
   private findPluginByName(pluginName: string): Plugin | undefined {
     const key = this.findPluginKeyByName(pluginName)
     return key ? this.plugins.get(key) : undefined
+  }
+
+  /**
+   * Sets the loading strategy for plugins
+   * @param strategy - Loading strategy (eager or lazy)
+   */
+  setLoadingStrategy(strategy: LoadingStrategy): void {
+    this.loadingStrategy = strategy
+  }
+
+  /**
+   * Discovers plugins in the specified directories
+   * @param options - Discovery options
+   * @returns Array of discovered plugins
+   */
+  async discover(options: DiscoveryOptions = {}): Promise<DiscoveredPlugin[]> {
+    const discovered = await discoverPlugins(options)
+
+    // Store discovered plugins
+    for (const plugin of discovered) {
+      const key = `${plugin.name}@${plugin.version}`
+      this.discoveredPlugins.set(key, plugin)
+    }
+
+    // Auto-load if strategy is eager
+    if (this.loadingStrategy === "eager") {
+      await this.loadDiscoveredPlugins(discovered)
+    }
+
+    return discovered
+  }
+
+  /**
+   * Loads discovered plugins
+   * @param discovered - Array of discovered plugins to load
+   */
+  async loadDiscoveredPlugins(discovered: DiscoveredPlugin[]): Promise<void> {
+    for (const discoveredPlugin of discovered) {
+      try {
+        // Try to load the plugin module
+        const plugin = await this.loadPluginFromPath(discoveredPlugin.path)
+        if (plugin) {
+          await this.register(plugin)
+        }
+      } catch (error) {
+        // Log error but continue loading other plugins
+        console.error(`Failed to load plugin ${discoveredPlugin.name}: ${error instanceof Error ? error.message : String(error)}`)
+      }
+    }
+  }
+
+  /**
+   * Loads a plugin from a file path
+   * @param pluginPath - Path to plugin directory
+   * @returns Plugin instance or undefined
+   */
+  private async loadPluginFromPath(pluginPath: string): Promise<Plugin | undefined> {
+    try {
+      // Try to load from dist/index.js (compiled) or src/index.ts (development)
+      const distPath = require.resolve(path.join(pluginPath, "dist", "index.js"))
+      if (distPath) {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const pluginModule = require(distPath)
+        return pluginModule.plugin as Plugin
+      }
+    } catch {
+      // Try src path or other locations
+      try {
+        const srcPath = require.resolve(path.join(pluginPath, "src", "index.ts"))
+        if (srcPath) {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          const pluginModule = require(srcPath)
+          return pluginModule.plugin as Plugin
+        }
+      } catch {
+        // Plugin not found or not loadable
+        return undefined
+      }
+    }
+
+    return undefined
+  }
+
+  /**
+   * Gets all discovered plugins
+   * @returns Array of discovered plugins
+   */
+  getDiscoveredPlugins(): DiscoveredPlugin[] {
+    return Array.from(this.discoveredPlugins.values())
   }
 
   /**
