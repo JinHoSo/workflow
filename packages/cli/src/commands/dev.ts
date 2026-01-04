@@ -5,8 +5,8 @@
 
 import { Command } from "commander"
 import chalk from "chalk"
-import { pluginHotReloader } from "../../../src/plugins/plugin-hot-reload"
-import { pluginRegistry } from "../../../src/plugins/plugin-registry"
+import { pluginHotReloader } from "@workflow/plugins"
+import { pluginRegistry } from "@workflow/plugins"
 
 /**
  * Options for dev command

@@ -2,10 +2,9 @@
  * Tests for node execution simulator
  */
 
-import { BaseNode } from "../../../../src/core/base-node"
-import type { NodeProperties, NodeOutput, DataRecord } from "../../../../src/interfaces"
-import type { ExecutionContext } from "../../../../src/interfaces/execution-state"
-import { NodeState } from "../../../../src/types"
+import { BaseNode } from "@workflow/core"
+import type { NodeOutput, DataRecord, ExecutionContext } from "@workflow/interfaces"
+import { NodeState } from "@workflow/interfaces"
 import {
   simulateNodeExecution,
   createMockInputData,
@@ -33,8 +32,10 @@ describe("node-execution-simulator", () => {
       const node = new TestNode({
         id: "test-1",
         name: "TestNode",
-        type: "test",
+        nodeType: "test",
         version: 1,
+        position: [0, 0],
+        isTrigger: false,
       })
 
       const result = await simulateNodeExecution(node, {
@@ -58,8 +59,10 @@ describe("node-execution-simulator", () => {
       const node = new ErrorNode({
         id: "error-1",
         name: "ErrorNode",
-        type: "error",
+        nodeType: "error",
         version: 1,
+        position: [0, 0],
+        isTrigger: false,
       })
 
       const result = await simulateNodeExecution(node)
@@ -71,10 +74,12 @@ describe("node-execution-simulator", () => {
 
     it("should configure node before execution", async () => {
       const node = new TestNode({
-        id: "test-1",
-        name: "TestNode",
-        type: "test",
+        id: "test-2",
+        name: "TestNode2",
+        nodeType: "test",
         version: 1,
+        position: [0, 0],
+        isTrigger: false,
       })
 
       await simulateNodeExecution(node, {
@@ -184,7 +189,7 @@ describe("node-execution-simulator", () => {
 
       expect(node.properties.id).toBe("test-node-1")
       expect(node.properties.name).toBe("TestNode")
-      expect(node.properties.type).toBe("test-node")
+      expect(node.properties.nodeType).toBe("test-node")
     })
   })
 })

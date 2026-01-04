@@ -3,22 +3,19 @@
   "version": "0.1.0",
   "private": true,
   "description": "KNIME/n8n-style workflow engine with TypeScript",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
-    "build": "tsc",
-    "build:watch": "tsc --watch",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
-    "lint": "eslint src --ext .ts",
-    "lint:fix": "eslint src --ext .ts --fix",
-    "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist",
-    "prepublishOnly": "yarn build"
+    "build": "yarn workspace @workflow/interfaces build && yarn workspace @workflow/schemas build && yarn workspace @workflow/secrets build && yarn workspace @workflow/protocols build && yarn workspace @workflow/execution build && yarn workspace @workflow/plugins build && yarn workspace @workflow/core build && yarn workspace @workflow/nodes build && yarn workspace @workflow/cli build && yarn workspace @workflow/test-utils build",
+    "build:watch": "echo 'Use individual package build:watch scripts'",
+    "test": "echo 'Use individual package test scripts'",
+    "test:watch": "echo 'Use individual package test:watch scripts'",
+    "test:coverage": "echo 'Use individual package test:coverage scripts'",
+    "lint": "echo 'Use individual package lint scripts'",
+    "lint:fix": "echo 'Use individual package lint:fix scripts'",
+    "typecheck": "echo 'Use individual package typecheck scripts'",
+    "clean": "find packages -name dist -type d -exec rm -rf {} + && find packages -name tsconfig.tsbuildinfo -delete"
   },
   "keywords": [
     "workflow",
@@ -41,18 +38,7 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
   },
-  "dependencies": {
-    "ajv": "^8.17.1",
-    "ajv-formats": "^3.0.1",
-    "fs": "^0.0.1-security",
-    "path": "^0.12.7",
-    "sqlite3": "^5.1.7"
-  },
   "engines": {
     "node": ">=18.0.0"
-  },
-  "files": [
-    "dist",
-    "src"
-  ]
+  }
 }

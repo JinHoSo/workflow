@@ -8,8 +8,8 @@ import { execSync } from "child_process"
 import chalk from "chalk"
 import * as fs from "fs-extra"
 import * as path from "path"
-import { discoverPlugins } from "../../../src/plugins/plugin-discovery"
-import { pluginRegistry } from "../../../src/plugins/plugin-registry"
+import { discoverPlugins } from "@workflow/plugins"
+import { pluginRegistry } from "@workflow/plugins"
 
 /**
  * Lists installed plugins

@@ -1,0 +1,47 @@
+{
+  "name": "@workflow/execution",
+  "version": "0.1.0",
+  "description": "Workflow execution engine and DAG utilities",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc --build",
+    "build:watch": "tsc --watch",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "workflow",
+    "execution",
+    "engine"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@workflow/core": "^0.1.0",
+    "@workflow/interfaces": "^0.1.0",
+    "@workflow/protocols": "^0.1.0",
+    "@workflow/secrets": "^0.1.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@types/node": "^20.11.24",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "eslint": "^8.56.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.2",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist"
+  ]
+}
+

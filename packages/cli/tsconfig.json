@@ -28,6 +28,20 @@
     "types": ["node"]
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+  "exclude": ["node_modules", "dist", "**/*.test.ts"],
+  "references": [
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../interfaces"
+    },
+    {
+      "path": "../plugins"
+    },
+    {
+      "path": "../protocols"
+    }
+  ]
 }
 

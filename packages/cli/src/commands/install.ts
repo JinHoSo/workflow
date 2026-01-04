@@ -8,8 +8,8 @@ import { execSync } from "child_process"
 import chalk from "chalk"
 import * as fs from "fs-extra"
 import * as path from "path"
-import { pluginStructureValidator } from "../../../src/plugins/plugin-structure-validator"
-import { pluginRegistry } from "../../../src/plugins/plugin-registry"
+import { pluginStructureValidator } from "@workflow/plugins"
+import { pluginRegistry } from "@workflow/plugins"
 
 /**
  * Options for install command

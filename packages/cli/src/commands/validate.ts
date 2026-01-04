@@ -11,12 +11,12 @@ import {
   protocolValidator,
   type ProtocolComplianceResult,
   type ProtocolComplianceIssue,
-} from "../../../src/protocols/protocol-validator"
-import { executionProtocol } from "../../../src/protocols/execution-impl"
-import { dataFlowProtocol } from "../../../src/protocols/data-flow-impl"
-import { errorHandlingProtocol } from "../../../src/protocols/error-handling-impl"
-import type { Node } from "../../../src/interfaces"
-import { BaseNode } from "../../../src/core/base-node"
+} from "@workflow/protocols"
+import { executionProtocol } from "@workflow/protocols"
+import { dataFlowProtocol } from "@workflow/protocols"
+import { errorHandlingProtocol } from "@workflow/protocols"
+import type { Node } from "@workflow/interfaces"
+// import { BaseNode } from "@workflow/core" // Unused import removed
 
 /**
  * Options for validate command
@@ -210,7 +210,7 @@ function reportJson(
   const output = results.map(({ node, result }) => ({
     node: {
       name: node.properties.name,
-      type: node.properties.type,
+      type: node.properties.nodeType,
       version: node.properties.version,
     },
     compliant: result.compliant,

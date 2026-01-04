@@ -7,6 +7,8 @@ node_modules/
 dist/
 build/
 *.tsbuildinfo
+packages/*/dist/
+packages/*/tsconfig.tsbuildinfo
 
 # Testing
 coverage/

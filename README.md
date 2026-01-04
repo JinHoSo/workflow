@@ -37,10 +37,10 @@ yarn test
 ### Creating a Simple Workflow
 
 ```typescript
-import { Workflow } from "./src/core/workflow"
-import { ManualTrigger } from "./src/triggers/manual-trigger"
-import { JavaScriptNode } from "./src/nodes/javascript-execution-node"
-import { ExecutionEngine } from "./src/execution/execution-engine"
+import { Workflow } from "@workflow/core"
+import { ManualTrigger } from "@workflow/nodes"
+import { JavaScriptExecutionNode } from "@workflow/nodes"
+import { ExecutionEngine } from "@workflow/execution"
 
 // Create workflow
 const workflow = new Workflow("my-workflow")
@@ -55,12 +55,13 @@ const trigger = new ManualTrigger({
 })
 
 // Create JavaScript node
-const jsNode = new JavaScriptNode({
+const jsNode = new JavaScriptExecutionNode({
   id: "js-1",
   name: "js-node",
   nodeType: "javascript",
   version: 1,
   position: [100, 0],
+  isTrigger: false,
 })
 
 // Configure JavaScript node

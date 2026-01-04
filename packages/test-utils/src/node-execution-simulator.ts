@@ -3,10 +3,9 @@
  * Provides utilities to simulate node execution in test environments
  */
 
-import type { BaseNode } from "../../../src/core/base-node"
-import type { NodeProperties, NodeOutput, DataRecord } from "../../../src/interfaces"
-import type { ExecutionContext } from "../../../src/interfaces/execution-state"
-import { NodeState } from "../../../src/types"
+import type { BaseNode } from "@workflow/core"
+import type { NodeProperties, NodeOutput, DataRecord, ExecutionContext } from "@workflow/interfaces"
+import { NodeState } from "@workflow/interfaces"
 
 /**
  * Options for node execution simulation
@@ -17,7 +16,7 @@ export interface NodeExecutionOptions {
   /** Node configuration */
   config?: Record<string, unknown>
   /** Execution state */
-  state?: Record<string, unknown>
+  state?: ExecutionState
 }
 
 /**
@@ -172,8 +171,10 @@ export function createTestNode(
   const defaultProperties: NodeProperties = {
     id: properties.id || "test-node-1",
     name: properties.name || "TestNode",
-    type: properties.type || "test-node",
+    nodeType: properties.nodeType || "test-node",
     version: properties.version || 1,
+    position: properties.position || [0, 0],
+    isTrigger: properties.isTrigger || false,
     ...properties,
   }
 

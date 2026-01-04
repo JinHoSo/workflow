@@ -8,7 +8,7 @@
     "workflow": "./dist/bin/workflow.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc --build",
     "build:watch": "tsc --watch",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -27,6 +27,10 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@workflow/core": "^0.1.0",
+    "@workflow/interfaces": "^0.1.0",
+    "@workflow/plugins": "^0.1.0",
+    "@workflow/protocols": "^0.1.0",
     "chalk": "^4.1.2",
     "chokidar": "^3.5.3",
     "commander": "^11.1.0",

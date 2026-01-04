@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc --build",
     "build:watch": "tsc --watch",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -22,7 +22,8 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "workflow-engine": "^0.1.0"
+    "@workflow/core": "^0.1.0",
+    "@workflow/interfaces": "^0.1.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",

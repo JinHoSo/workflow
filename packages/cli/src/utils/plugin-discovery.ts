@@ -5,7 +5,7 @@
 
 import * as fs from "fs-extra"
 import * as path from "path"
-import type { PluginManifest } from "../../../src/plugins/plugin-manifest"
+import type { PluginManifest } from "@workflow/plugins"
 
 /**
  * Plugin discovery result
