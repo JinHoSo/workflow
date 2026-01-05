@@ -4,7 +4,7 @@
  */
 
 import { TriggerNodeBase } from "../base-trigger"
-import type { NodeProperties, ExecutionContext, NodeOutput } from "@workflow/interfaces"
+import type { NodeProperties, NodePropertiesInput, ExecutionContext, NodeOutput } from "@workflow/interfaces"
 import { NodeState, WorkflowState } from "@workflow/interfaces"
 import type { ExecutionEngine } from "@workflow/execution"
 
@@ -12,8 +12,19 @@ import type { ExecutionEngine } from "@workflow/execution"
  * Test trigger implementation for testing TriggerNodeBase functionality
  */
 class TestTrigger extends TriggerNodeBase {
+  /** Node type identifier for this class */
+  static readonly nodeType = "test-trigger"
+
   private activatedData?: NodeOutput
   private activationCount = 0
+
+  constructor(properties: NodePropertiesInput) {
+    super({
+      ...properties,
+      nodeType: TestTrigger.nodeType,
+      isTrigger: true,
+    })
+  }
 
   protected activate(data: NodeOutput): void {
     this.activatedData = data
@@ -58,18 +69,30 @@ describe("TriggerNodeBase", () => {
   let properties: NodeProperties
 
   beforeEach(() => {
+    // nodeType is automatically set from class definition, so we can omit it
     properties = {
       id: "test-trigger-1",
       name: "TestTrigger",
-      nodeType: "test-trigger",
       version: 1,
-      position: [0, 0],
-      isTrigger: false, // Will be set to true by constructor
-    }
+      position: [0, 0] as [number, number],
+      // isTrigger will be set to true by constructor
+    } as NodeProperties
     trigger = new TestTrigger(properties)
   })
 
   describe("constructor", () => {
+    it("should automatically set nodeType from class definition", () => {
+      expect(trigger.properties.nodeType).toBe("test-trigger")
+    })
+
+    it("should override user-provided nodeType with class definition", () => {
+      const triggerWithWrongType = new TestTrigger({
+        ...properties,
+        nodeType: "wrong-type",
+      })
+      expect(triggerWithWrongType.properties.nodeType).toBe("test-trigger")
+    })
+
     it("should initialize trigger with isTrigger set to true", () => {
       expect(trigger.properties.isTrigger).toBe(true)
     })

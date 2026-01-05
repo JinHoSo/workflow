@@ -1,5 +1,5 @@
 import { BaseNode } from "@workflow/core"
-import type { NodeProperties, NodeConfiguration, DataRecord, NodeInput, NodeOutput, ExecutionContext } from "@workflow/interfaces"
+import type { NodePropertiesInput, NodeConfiguration, DataRecord, NodeInput, NodeOutput, ExecutionContext } from "@workflow/interfaces"
 import { LinkType } from "@workflow/interfaces"
 import { javascriptNodeSchema } from "./schema"
 
@@ -14,12 +14,19 @@ import { javascriptNodeSchema } from "./schema"
  * - return value: If code returns a value, it's automatically set as output
  */
 export class JavaScriptNode extends BaseNode {
+  /** Node type identifier for this class */
+  static readonly nodeType = "javascript"
+
   /**
    * Creates a new JavaScriptNode
-   * @param properties - Node properties
+   * @param properties - Node properties (nodeType will be automatically set)
    */
-  constructor(properties: NodeProperties) {
-    super(properties)
+  constructor(properties: NodePropertiesInput) {
+    // Automatically set nodeType from class definition, overriding any user-provided value
+    super({
+      ...properties,
+      nodeType: JavaScriptNode.nodeType,
+    })
     this.configurationSchema = javascriptNodeSchema
     this.addInput("input", "data", LinkType.Standard)
     this.addOutput("output", "data", LinkType.Standard)

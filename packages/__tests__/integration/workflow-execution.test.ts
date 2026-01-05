@@ -6,13 +6,22 @@
 import { Workflow } from "@workflow/core"
 import { ExecutionEngine } from "@workflow/execution"
 import { BaseNode } from "@workflow/core"
-import type { NodeProperties, ExecutionContext, NodeOutput } from "@workflow/interfaces"
+import type { NodePropertiesInput, ExecutionContext, NodeOutput } from "@workflow/interfaces"
 import { NodeState, WorkflowState } from "@workflow/interfaces"
 
 /**
  * Test node implementation
  */
 class TestNode extends BaseNode {
+  static readonly nodeType = "test-node"
+
+  constructor(properties: NodePropertiesInput) {
+    super({
+      ...properties,
+      nodeType: TestNode.nodeType,
+    })
+  }
+
   protected async process(context: ExecutionContext): Promise<NodeOutput> {
     const inputData = context.input["input"] || []
     const normalized = Array.isArray(inputData) ? inputData : [inputData]
@@ -29,9 +38,14 @@ class TestNode extends BaseNode {
  * Test trigger implementation
  */
 class TestTrigger extends BaseNode {
-  constructor(properties: NodeProperties) {
-    super(properties)
-    this.properties.isTrigger = true
+  static readonly nodeType = "test-trigger"
+
+  constructor(properties: NodePropertiesInput) {
+    super({
+      ...properties,
+      nodeType: TestTrigger.nodeType,
+      isTrigger: true,
+    })
   }
 
   protected async process(_context: ExecutionContext): Promise<NodeOutput> {
@@ -42,10 +56,10 @@ class TestTrigger extends BaseNode {
 describe("Workflow Execution Integration", () => {
   it("should execute complete workflow from trigger to output", async () => {
     const workflow = new Workflow("integration-test")
+    // nodeType is automatically set from class definition, so we can omit it
     const trigger = new TestTrigger({
       id: "trigger-1",
       name: "Trigger",
-      nodeType: "test-trigger",
       version: 1,
       position: [0, 0],
     })

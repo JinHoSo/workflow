@@ -15,22 +15,22 @@ async function main() {
   const workflow = new Workflow("error-handling-workflow")
 
   // Create trigger
+  // nodeType is automatically set from class definition
   const trigger = new ManualTrigger({
     id: "trigger-1",
     name: "trigger",
-    nodeType: "manual-trigger",
     version: 1,
     position: [0, 0],
   })
 
   // Create node that may fail
+  // nodeType is automatically set from class definition
+  // isTrigger defaults to false, so it can be omitted
   const mayFailNode = new JavaScriptExecutionNode({
     id: "may-fail-1",
     name: "may-fail",
-    nodeType: "javascript",
     version: 1,
     position: [100, 0],
-    isTrigger: false,
     continueOnFail: true, // Continue even if this node fails
   })
 
@@ -45,13 +45,13 @@ async function main() {
   })
 
   // Create error handler node
+  // nodeType is automatically set from class definition
+  // isTrigger defaults to false, so it can be omitted
   const errorHandlerNode = new JavaScriptExecutionNode({
     id: "error-handler-1",
     name: "error-handler",
-    nodeType: "javascript",
     version: 1,
     position: [200, 0],
-    isTrigger: false,
   })
 
   errorHandlerNode.setup({

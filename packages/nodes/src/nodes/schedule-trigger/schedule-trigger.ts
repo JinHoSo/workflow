@@ -1,5 +1,5 @@
 import { TriggerNodeBase } from "@workflow/core"
-import type { NodeProperties, NodeConfiguration, NodeOutput, ExecutionContext, ScheduleConfig } from "@workflow/interfaces"
+import type { NodePropertiesInput, NodeConfiguration, NodeOutput, ExecutionContext, ScheduleConfig } from "@workflow/interfaces"
 import { WorkflowState } from "@workflow/interfaces"
 import { LinkType, NodeState } from "@workflow/interfaces"
 import { validateScheduleConfig, calculateNextExecution } from "./schedule-utils"
@@ -11,16 +11,24 @@ import { scheduleTriggerSchema } from "./schema"
  * Supports minute, hour, day, month, and year intervals with second-level precision
  */
 export class ScheduleTrigger extends TriggerNodeBase {
+  /** Node type identifier for this class */
+  static readonly nodeType = "schedule-trigger"
+
   private scheduleTimer?: NodeJS.Timeout
   private scheduleConfig?: ScheduleConfig
   private nextExecutionTime?: Date
 
   /**
    * Creates a new ScheduleTrigger
-   * @param properties - Node properties
+   * @param properties - Node properties (nodeType will be automatically set)
    */
-  constructor(properties: NodeProperties) {
-    super({ ...properties, isTrigger: true })
+  constructor(properties: NodePropertiesInput) {
+    // Automatically set nodeType from class definition, overriding any user-provided value
+    super({
+      ...properties,
+      nodeType: ScheduleTrigger.nodeType,
+      isTrigger: true,
+    })
     this.configurationSchema = scheduleTriggerSchema
     this.addOutput("output", "data", LinkType.Standard)
   }

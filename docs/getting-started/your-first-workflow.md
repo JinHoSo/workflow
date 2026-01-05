@@ -48,10 +48,10 @@ const workflow = new Workflow("my-first-workflow")
 ### Create a Trigger
 
 ```typescript
+// nodeType is automatically set from class definition
 const trigger = new ManualTrigger({
   id: "trigger-1",
   name: "trigger",
-  nodeType: "manual-trigger",
   version: 1,
   position: [0, 0],
 })
@@ -61,13 +61,13 @@ const trigger = new ManualTrigger({
 
 ```typescript
 // Node 1: Multiply by 2
+// nodeType is automatically set from class definition
+// isTrigger defaults to false, so it can be omitted
 const multiplyNode = new JavaScriptExecutionNode({
   id: "multiply-1",
   name: "multiply",
-  nodeType: "javascript",
   version: 1,
   position: [100, 0],
-  isTrigger: false,
 })
 
 multiplyNode.setup({
@@ -78,13 +78,13 @@ multiplyNode.setup({
 })
 
 // Node 2: Add 10
+// nodeType is automatically set from class definition
+// isTrigger defaults to false, so it can be omitted
 const addNode = new JavaScriptExecutionNode({
   id: "add-1",
   name: "add",
-  nodeType: "javascript",
   version: 1,
   position: [200, 0],
-  isTrigger: false,
 })
 
 addNode.setup({

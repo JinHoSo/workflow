@@ -1,5 +1,5 @@
 import { BaseNode } from "@workflow/core"
-import type { NodeProperties, NodeConfiguration, DataRecord, NodeInput, NodeOutput, ExecutionContext } from "@workflow/interfaces"
+import type { NodePropertiesInput, NodeConfiguration, DataRecord, NodeInput, NodeOutput, ExecutionContext } from "@workflow/interfaces"
 import { LinkType } from "@workflow/interfaces"
 import { httpRequestNodeSchema } from "./schema"
 
@@ -127,15 +127,22 @@ export interface HttpRequestErrorData extends DataRecord {
  * - error port: Error data (errorType, message, request details, statusCode)
  */
 export class HttpRequestNode extends BaseNode {
+  /** Node type identifier for this class */
+  static readonly nodeType = "http-request"
+
   /** Default timeout in milliseconds */
   private static readonly DEFAULT_TIMEOUT = 30000
 
   /**
    * Creates a new HttpRequestNode
-   * @param properties - Node properties
+   * @param properties - Node properties (nodeType will be automatically set)
    */
-  constructor(properties: NodeProperties) {
-    super(properties)
+  constructor(properties: NodePropertiesInput) {
+    // Automatically set nodeType from class definition, overriding any user-provided value
+    super({
+      ...properties,
+      nodeType: HttpRequestNode.nodeType,
+    })
     this.configurationSchema = httpRequestNodeSchema
     this.addInput("input", "data", LinkType.Standard)
     this.addOutput("output", "data", LinkType.Standard)

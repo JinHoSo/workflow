@@ -5,13 +5,22 @@
 
 import { ErrorHandlingProtocolImpl, errorHandlingProtocol } from "../error-handling-impl"
 import { BaseNode } from "@workflow/core"
-import type { ExecutionContext, NodeOutput, NodeProperties } from "@workflow/interfaces"
+import type { ExecutionContext, NodeOutput, NodePropertiesInput } from "@workflow/interfaces"
 import { NodeState } from "@workflow/interfaces"
 
 /**
  * Test node implementation
  */
 class TestNode extends BaseNode {
+  static readonly nodeType = "test-node"
+
+  constructor(properties: NodePropertiesInput) {
+    super({
+      ...properties,
+      nodeType: TestNode.nodeType,
+    })
+  }
+
   protected async process(_context: ExecutionContext): Promise<NodeOutput> {
     return { output: [] }
   }
@@ -20,18 +29,18 @@ class TestNode extends BaseNode {
 describe("ErrorHandlingProtocolImpl", () => {
   let protocol: ErrorHandlingProtocolImpl
   let node: TestNode
-  let properties: NodeProperties
+  let properties: NodePropertiesInput
 
   beforeEach(() => {
     protocol = new ErrorHandlingProtocolImpl()
+    // nodeType is automatically set from class definition
     properties = {
       id: "test-1",
       name: "TestNode",
-      nodeType: "test",
       version: 1,
-      position: [0, 0],
+      position: [0, 0] as [number, number],
       isTrigger: false,
-    }
+    } as NodePropertiesInput
     node = new TestNode(properties)
   })
 

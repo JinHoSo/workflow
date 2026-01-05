@@ -15,22 +15,22 @@ async function main() {
   const workflow = new Workflow("http-integration-workflow")
 
   // Create trigger
+  // nodeType is automatically set from class definition
   const trigger = new ManualTrigger({
     id: "trigger-1",
     name: "trigger",
-    nodeType: "manual-trigger",
     version: 1,
     position: [0, 0],
   })
 
   // Create HTTP request node
+  // nodeType is automatically set from class definition
+  // isTrigger defaults to false, so it can be omitted
   const httpNode = new HttpRequestNode({
     id: "http-1",
     name: "http-request",
-    nodeType: "http-request",
     version: 1,
     position: [100, 0],
-    isTrigger: false,
   })
 
   // Configure HTTP request
@@ -44,13 +44,13 @@ async function main() {
   })
 
   // Create processing node
+  // nodeType is automatically set from class definition
+  // isTrigger defaults to false, so it can be omitted
   const processNode = new JavaScriptExecutionNode({
     id: "process-1",
     name: "process",
-    nodeType: "javascript",
     version: 1,
     position: [200, 0],
-    isTrigger: false,
   })
 
   processNode.setup({

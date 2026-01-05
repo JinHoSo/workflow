@@ -14,22 +14,22 @@ async function main() {
   const workflow = new Workflow("multi-node-workflow")
 
   // Create trigger
+  // nodeType is automatically set from class definition
   const trigger = new ManualTrigger({
     id: "trigger-1",
     name: "trigger",
-    nodeType: "manual-trigger",
     version: 1,
     position: [0, 0],
   })
 
   // Create multiply node
+  // nodeType is automatically set from class definition
+  // isTrigger defaults to false, so it can be omitted
   const multiplyNode = new JavaScriptExecutionNode({
     id: "multiply-1",
     name: "multiply",
-    nodeType: "javascript",
     version: 1,
     position: [100, 0],
-    isTrigger: false,
   })
 
   multiplyNode.setup({
@@ -40,13 +40,13 @@ async function main() {
   })
 
   // Create add node
+  // nodeType is automatically set from class definition
+  // isTrigger defaults to false, so it can be omitted
   const addNode = new JavaScriptExecutionNode({
     id: "add-1",
     name: "add",
-    nodeType: "javascript",
     version: 1,
     position: [200, 0],
-    isTrigger: false,
   })
 
   addNode.setup({

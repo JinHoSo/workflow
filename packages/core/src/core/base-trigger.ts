@@ -1,5 +1,5 @@
 import { BaseNode } from "./base-node"
-import type { NodeOutput, NodeProperties, WorkflowTrigger, ExecutionContext } from "@workflow/interfaces"
+import type { NodeOutput, NodePropertiesInput, WorkflowTrigger, ExecutionContext } from "@workflow/interfaces"
 import { NodeState, WorkflowState } from "@workflow/interfaces"
 import type { ExecutionEngine } from "@workflow/execution"
 
@@ -19,7 +19,7 @@ export abstract class TriggerNodeBase extends BaseNode implements WorkflowTrigge
    * Sets isTrigger property to true to identify this as a trigger node
    * @param properties - Node properties (isTrigger will be set to true)
    */
-  constructor(properties: NodeProperties) {
+  constructor(properties: NodePropertiesInput) {
     super(properties)
     // Mark this node as a trigger in the unified model
     this.properties.isTrigger = true

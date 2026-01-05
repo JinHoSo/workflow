@@ -14,23 +14,23 @@ async function main() {
   const workflow = new Workflow("retry-mechanism-workflow")
 
   // Create trigger
+  // nodeType is automatically set from class definition
   const trigger = new ManualTrigger({
     id: "trigger-1",
     name: "trigger",
-    nodeType: "manual-trigger",
     version: 1,
     position: [0, 0],
   })
 
   // Create node with retry configuration
+  // nodeType is automatically set from class definition
+  // isTrigger defaults to false, so it can be omitted
   let attemptCount = 0
   const retryNode = new JavaScriptExecutionNode({
     id: "retry-1",
     name: "retry-node",
-    nodeType: "javascript",
     version: 1,
     position: [100, 0],
-    isTrigger: false,
     retryOnFail: true,
     maxRetries: 3,
     retryDelay: {

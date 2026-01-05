@@ -7,12 +7,21 @@ import { PluginRegistry } from "@workflow/plugins"
 import { NodeTypeRegistryImpl } from "@workflow/core"
 import { BaseNode } from "@workflow/core"
 import type { Plugin, PluginManifest } from "@workflow/plugins"
-import type { NodeOutput, ExecutionContext } from "@workflow/interfaces"
+import type { NodeOutput, NodePropertiesInput, ExecutionContext } from "@workflow/interfaces"
 
 /**
  * Test node class
  */
 class TestNode extends BaseNode {
+  static readonly nodeType = "test-node"
+
+  constructor(properties: NodePropertiesInput) {
+    super({
+      ...properties,
+      nodeType: TestNode.nodeType,
+    })
+  }
+
   protected async process(_context: ExecutionContext): Promise<NodeOutput> {
     return { output: [] }
   }

@@ -1,5 +1,5 @@
 import { TriggerNodeBase } from "@workflow/core"
-import type { NodeProperties, NodeConfiguration, NodeOutput, ExecutionContext } from "@workflow/interfaces"
+import type { NodePropertiesInput, NodeConfiguration, NodeOutput, ExecutionContext } from "@workflow/interfaces"
 import { WorkflowState } from "@workflow/interfaces"
 import type { ExecutionEngine } from "@workflow/execution"
 import { LinkType, NodeState } from "@workflow/interfaces"
@@ -10,14 +10,22 @@ import { manualTriggerSchema } from "./schema"
  * Can be called directly via trigger() method to start workflow execution
  */
 export class ManualTrigger extends TriggerNodeBase {
+  /** Node type identifier for this class */
+  static readonly nodeType = "manual-trigger"
+
   private workflowCallback?: (data: NodeOutput) => void
 
   /**
    * Creates a new ManualTrigger
-   * @param properties - Node properties
+   * @param properties - Node properties (nodeType will be automatically set)
    */
-  constructor(properties: NodeProperties) {
-    super({ ...properties, isTrigger: true })
+  constructor(properties: NodePropertiesInput) {
+    // Automatically set nodeType from class definition, overriding any user-provided value
+    super({
+      ...properties,
+      nodeType: ManualTrigger.nodeType,
+      isTrigger: true,
+    })
     this.configurationSchema = manualTriggerSchema
     this.addOutput("output", "data", LinkType.Standard)
   }

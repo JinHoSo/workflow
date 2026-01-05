@@ -34,10 +34,11 @@ Execution nodes process data:
 ### Basic Configuration
 
 ```typescript
+// nodeType is automatically set from class definition
+// isTrigger defaults to false, so it can be omitted
 const node = new JavaScriptExecutionNode({
   id: "node-1",
   name: "my-node",
-  nodeType: "javascript",
   version: 1,
   position: [0, 0],
 })

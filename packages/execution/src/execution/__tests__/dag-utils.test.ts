@@ -5,12 +5,21 @@
 
 import { buildDependencyGraph, detectCycles, topologicalSort, getIndependentNodes } from "../dag-utils"
 import { Workflow, BaseNode } from "@workflow/core"
-import type { NodeProperties, ExecutionContext, NodeOutput } from "@workflow/interfaces"
+import type { NodePropertiesInput, ExecutionContext, NodeOutput } from "@workflow/interfaces"
 
 /**
  * Test node implementation
  */
 class TestNode extends BaseNode {
+  static readonly nodeType = "test-node"
+
+  constructor(properties: NodePropertiesInput) {
+    super({
+      ...properties,
+      nodeType: TestNode.nodeType,
+    })
+  }
+
   protected async process(_context: ExecutionContext): Promise<NodeOutput> {
     return { output: [] }
   }
@@ -20,19 +29,18 @@ describe("DAG Utilities", () => {
   describe("buildDependencyGraph", () => {
     it("should build dependency graph from workflow", () => {
       const workflow = new Workflow("test-workflow")
-      const node1Properties: NodeProperties = {
+      // nodeType is automatically set from class definition
+      const node1Properties: NodePropertiesInput = {
         id: "1",
         name: "Node1",
-        nodeType: "test",
         version: 1,
-        position: [0, 0],
+        position: [0, 0] as [number, number],
       }
-      const node2Properties: NodeProperties = {
+      const node2Properties: NodePropertiesInput = {
         id: "2",
         name: "Node2",
-        nodeType: "test",
         version: 1,
-        position: [100, 0],
+        position: [100, 0] as [number, number],
       }
       const node1 = new TestNode(node1Properties)
       const node2 = new TestNode(node2Properties)
@@ -48,12 +56,12 @@ describe("DAG Utilities", () => {
 
     it("should handle workflow with no connections", () => {
       const workflow = new Workflow("test-workflow")
-      const node1Properties: NodeProperties = {
+      // nodeType is automatically set from class definition
+      const node1Properties: NodePropertiesInput = {
         id: "1",
         name: "Node1",
-        nodeType: "test",
         version: 1,
-        position: [0, 0],
+        position: [0, 0] as [number, number],
       }
       const node1 = new TestNode(node1Properties)
       workflow.addNode(node1)
@@ -63,26 +71,24 @@ describe("DAG Utilities", () => {
 
     it("should handle multiple dependencies", () => {
       const workflow = new Workflow("test-workflow")
-      const node1Properties: NodeProperties = {
+      // nodeType is automatically set from class definition
+      const node1Properties: NodePropertiesInput = {
         id: "1",
         name: "Node1",
-        nodeType: "test",
         version: 1,
-        position: [0, 0],
+        position: [0, 0] as [number, number],
       }
-      const node2Properties: NodeProperties = {
+      const node2Properties: NodePropertiesInput = {
         id: "2",
         name: "Node2",
-        nodeType: "test",
         version: 1,
-        position: [100, 0],
+        position: [100, 0] as [number, number],
       }
-      const node3Properties: NodeProperties = {
+      const node3Properties: NodePropertiesInput = {
         id: "3",
         name: "Node3",
-        nodeType: "test",
         version: 1,
-        position: [200, 0],
+        position: [200, 0] as [number, number],
       }
       const node1 = new TestNode(node1Properties)
       const node2 = new TestNode(node2Properties)

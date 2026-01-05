@@ -14,10 +14,10 @@ async function main() {
   const workflow = new Workflow("scheduled-workflow")
 
   // Create schedule trigger
+  // nodeType is automatically set from class definition
   const trigger = new ScheduleTrigger({
     id: "schedule-1",
     name: "schedule",
-    nodeType: "schedule-trigger",
     version: 1,
     position: [0, 0],
   })
@@ -29,13 +29,13 @@ async function main() {
   })
 
   // Create processing node
+  // nodeType is automatically set from class definition
+  // isTrigger defaults to false, so it can be omitted
   const processNode = new JavaScriptExecutionNode({
     id: "process-1",
     name: "process",
-    nodeType: "javascript",
     version: 1,
     position: [100, 0],
-    isTrigger: false,
   })
 
   processNode.setup({

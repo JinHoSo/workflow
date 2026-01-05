@@ -46,22 +46,22 @@ import { ExecutionEngine } from "@workflow/execution"
 const workflow = new Workflow("my-workflow")
 
 // Create trigger
+// nodeType is automatically set from class definition
 const trigger = new ManualTrigger({
   id: "trigger-1",
   name: "trigger",
-  nodeType: "manual-trigger",
   version: 1,
   position: [0, 0],
 })
 
 // Create JavaScript node
+// nodeType is automatically set from class definition
+// isTrigger defaults to false, so it can be omitted
 const jsNode = new JavaScriptExecutionNode({
   id: "js-1",
   name: "js-node",
-  nodeType: "javascript",
   version: 1,
   position: [100, 0],
-  isTrigger: false,
 })
 
 // Configure JavaScript node

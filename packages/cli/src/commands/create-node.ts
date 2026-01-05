@@ -75,7 +75,7 @@ async function generateBasicNode(nodeDir: string, nodeName: string): Promise<voi
 
   // Generate node TypeScript file
   const nodeContent = `import { BaseNode } from "../../core/base-node"
-import type { NodeProperties, NodeConfiguration, NodeOutput } from "../../interfaces"
+import type { NodePropertiesInput, NodeConfiguration, NodeOutput } from "../../interfaces"
 import type { ExecutionContext } from "../../interfaces/execution-state"
 import { LinkType } from "../../types"
 import { ${nodeName}Schema } from "./schema"
@@ -92,6 +92,9 @@ export interface ${className}Configuration extends NodeConfiguration {
  * Extends BaseNode to provide custom node functionality
  */
 export class ${className} extends BaseNode {
+  /** Node type identifier for this class */
+  static readonly nodeType = "${nodeName}"
+
   /**
    * Configuration schema for validation
    */
@@ -99,10 +102,13 @@ export class ${className} extends BaseNode {
 
   /**
    * Creates a new ${className} instance
-   * @param properties - Node properties
+   * @param properties - Node properties (nodeType will be automatically set)
    */
-  constructor(properties: NodeProperties) {
-    super(properties)
+  constructor(properties: NodePropertiesInput) {
+    super({
+      ...properties,
+      nodeType: ${className}.nodeType,
+    })
 
     // Define input ports
     this.addInput("input", "any", LinkType.Standard)
@@ -156,7 +162,7 @@ async function generateHttpNode(nodeDir: string, nodeName: string): Promise<void
   const nodeFileName = `${nodeName}.ts`
 
   const nodeContent = `import { BaseNode } from "../../core/base-node"
-import type { NodeProperties, NodeConfiguration, NodeOutput, DataRecord } from "../../interfaces"
+import type { NodePropertiesInput, NodeConfiguration, NodeOutput, DataRecord } from "../../interfaces"
 import type { ExecutionContext } from "../../interfaces/execution-state"
 import { LinkType } from "../../types"
 import { ${nodeName}Schema } from "./schema"
@@ -185,6 +191,9 @@ export interface ${className}Configuration extends NodeConfiguration {
  * Extends BaseNode to provide HTTP request functionality
  */
 export class ${className} extends BaseNode {
+  /** Node type identifier for this class */
+  static readonly nodeType = "${nodeName}"
+
   /**
    * Configuration schema for validation
    */
@@ -192,10 +201,13 @@ export class ${className} extends BaseNode {
 
   /**
    * Creates a new ${className} instance
-   * @param properties - Node properties
+   * @param properties - Node properties (nodeType will be automatically set)
    */
-  constructor(properties: NodeProperties) {
-    super(properties)
+  constructor(properties: NodePropertiesInput) {
+    super({
+      ...properties,
+      nodeType: ${className}.nodeType,
+    })
 
     // Define input ports
     this.addInput("input", "any", LinkType.Standard)
@@ -255,7 +267,7 @@ async function generateTriggerNode(nodeDir: string, nodeName: string): Promise<v
   const nodeFileName = `${nodeName}.ts`
 
   const nodeContent = `import { TriggerNodeBase } from "../../core/base-trigger"
-import type { NodeProperties, NodeConfiguration, NodeOutput } from "../../interfaces"
+import type { NodePropertiesInput, NodeConfiguration, NodeOutput } from "../../interfaces"
 import type { ExecutionContext } from "../../interfaces/execution-state"
 import { LinkType } from "../../types"
 import { ${nodeName}Schema } from "./schema"
@@ -272,6 +284,9 @@ export interface ${className}Configuration extends NodeConfiguration {
  * Extends TriggerNodeBase to provide trigger functionality
  */
 export class ${className} extends TriggerNodeBase {
+  /** Node type identifier for this class */
+  static readonly nodeType = "${nodeName}"
+
   /**
    * Configuration schema for validation
    */
@@ -279,10 +294,14 @@ export class ${className} extends TriggerNodeBase {
 
   /**
    * Creates a new ${className} instance
-   * @param properties - Node properties
+   * @param properties - Node properties (nodeType will be automatically set)
    */
-  constructor(properties: NodeProperties) {
-    super(properties)
+  constructor(properties: NodePropertiesInput) {
+    super({
+      ...properties,
+      nodeType: ${className}.nodeType,
+      isTrigger: true,
+    })
 
     // Define output ports
     this.addOutput("output", "any", LinkType.Standard)

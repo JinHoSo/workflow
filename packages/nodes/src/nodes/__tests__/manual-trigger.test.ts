@@ -12,17 +12,29 @@ describe("ManualTrigger", () => {
   let properties: NodeProperties
 
   beforeEach(() => {
+    // nodeType is automatically set from class definition, so we can omit it
     properties = {
       id: "trigger-1",
       name: "ManualTrigger",
-      nodeType: "manual-trigger",
       version: 1,
-      position: [0, 0],
-    }
+      position: [0, 0] as [number, number],
+    } as NodeProperties
     trigger = new ManualTrigger(properties)
   })
 
   describe("initialization", () => {
+    it("should automatically set nodeType from class definition", () => {
+      expect(trigger.properties.nodeType).toBe("manual-trigger")
+    })
+
+    it("should override user-provided nodeType with class definition", () => {
+      const triggerWithWrongType = new ManualTrigger({
+        ...properties,
+        nodeType: "wrong-type",
+      })
+      expect(triggerWithWrongType.properties.nodeType).toBe("manual-trigger")
+    })
+
     it("should create trigger with isTrigger set to true", () => {
       expect(trigger.properties.isTrigger).toBe(true)
     })

@@ -12,13 +12,18 @@ export interface NodeProperties {
   id: string
   /** Display name of the node (unique within workflow) */
   name: string
-  /** Type of the node (e.g., "javascript", "manual-trigger") */
+  /** Type of the node (e.g., "javascript", "manual-trigger")
+   * When creating nodes using class constructors, this is automatically set from the class definition.
+   * Required for serialization/deserialization (JSON export/import) where class information is not available.
+   */
   nodeType: string
   /** Version of the node type */
   version: number
   /** Visual position [x, y] in the workflow canvas */
   position: [number, number]
-  /** Whether this node is a trigger node (initiates workflow execution) */
+  /** Whether this node is a trigger node (initiates workflow execution)
+   * Defaults to false if not provided. Trigger nodes automatically set this to true.
+   */
   isTrigger?: boolean
   /** Whether the node is disabled (skipped during execution) */
   disabled?: boolean
@@ -32,6 +37,15 @@ export interface NodeProperties {
   retryDelay?: number | { baseDelay?: number; maxDelay?: number }
   /** Whether to continue workflow execution if this node fails */
   continueOnFail?: boolean
+}
+
+/**
+ * Node properties for constructor parameters
+ * nodeType is optional because it's automatically set by node class constructors
+ */
+export type NodePropertiesInput = Omit<NodeProperties, "nodeType"> & {
+  /** Optional nodeType - will be automatically set by the node class constructor */
+  nodeType?: string
 }
 
 /**

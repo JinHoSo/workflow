@@ -5,13 +5,22 @@
 
 import { ExecutionEngine } from "../execution-engine"
 import { Workflow, BaseNode } from "@workflow/core"
-import type { NodeProperties, ExecutionContext, NodeOutput } from "@workflow/interfaces"
+import type { NodeProperties, NodePropertiesInput, ExecutionContext, NodeOutput } from "@workflow/interfaces"
 import { NodeState, WorkflowState } from "@workflow/interfaces"
 
 /**
  * Test node implementation
  */
 class TestNode extends BaseNode {
+  static readonly nodeType = "test-node"
+
+  constructor(properties: NodePropertiesInput) {
+    super({
+      ...properties,
+      nodeType: TestNode.nodeType,
+    })
+  }
+
   protected async process(context: ExecutionContext): Promise<NodeOutput> {
     const inputData = context.input["input"] || []
     const normalized = Array.isArray(inputData) ? inputData : [inputData]
@@ -28,12 +37,14 @@ class TestNode extends BaseNode {
  * Test trigger implementation
  */
 class TestTrigger extends BaseNode {
-  constructor(properties: NodeProperties) {
-    const triggerProperties: NodeProperties = {
+  static readonly nodeType = "test-trigger"
+
+  constructor(properties: NodePropertiesInput) {
+    super({
       ...properties,
+      nodeType: TestTrigger.nodeType,
       isTrigger: true,
-    }
-    super(triggerProperties)
+    })
   }
 
   protected async process(_context: ExecutionContext): Promise<NodeOutput> {
@@ -63,23 +74,23 @@ describe("ExecutionEngine", () => {
 
   describe("workflow execution", () => {
     it("should execute simple workflow with trigger and node", async () => {
-      const triggerProperties: NodeProperties = {
+      // nodeType is automatically set from class definition, so we can omit it
+      const triggerProperties = {
         id: "trigger-1",
         name: "Trigger",
-        nodeType: "test-trigger",
         version: 1,
-        position: [0, 0],
+        position: [0, 0] as [number, number],
       }
-      const trigger = new TestTrigger(triggerProperties)
+      const trigger = new TestTrigger(triggerProperties as NodeProperties)
       trigger.addOutput("output", "object")
-      const nodeProperties: NodeProperties = {
+      // nodeType is automatically set from class definition, so we can omit it
+      const nodeProperties = {
         id: "node-1",
         name: "Node1",
-        nodeType: "test-node",
         version: 1,
-        position: [100, 0],
+        position: [100, 0] as [number, number],
       }
-      const node = new TestNode(nodeProperties)
+      const node = new TestNode(nodeProperties as NodeProperties)
       node.addInput("input", "object")
       node.addOutput("output", "object")
       workflow.addNode(trigger)
@@ -97,14 +108,14 @@ describe("ExecutionEngine", () => {
 
     it("should throw error if workflow already executing", async () => {
       workflow.state = WorkflowState.Running
-      const triggerProperties: NodeProperties = {
+      // nodeType is automatically set from class definition, so we can omit it
+      const triggerProperties = {
         id: "trigger-1",
         name: "Trigger",
-        nodeType: "test-trigger",
         version: 1,
-        position: [0, 0],
+        position: [0, 0] as [number, number],
       }
-      const trigger = new TestTrigger(triggerProperties)
+      const trigger = new TestTrigger(triggerProperties as NodeProperties)
       workflow.addNode(trigger)
       await expect(engine.execute("Trigger")).rejects.toThrow("Workflow is already executing")
     })
@@ -114,14 +125,14 @@ describe("ExecutionEngine", () => {
     })
 
     it("should throw error if node is not a trigger", async () => {
-      const nodeProperties: NodeProperties = {
+      // nodeType is automatically set from class definition, so we can omit it
+      const nodeProperties = {
         id: "node-1",
         name: "Node1",
-        nodeType: "test-node",
         version: 1,
-        position: [0, 0],
+        position: [0, 0] as [number, number],
       }
-      const node = new TestNode(nodeProperties)
+      const node = new TestNode(nodeProperties as NodeProperties)
       workflow.addNode(node)
       await expect(engine.execute("Node1")).rejects.toThrow("not a trigger node")
     })
@@ -129,14 +140,14 @@ describe("ExecutionEngine", () => {
 
   describe("state management", () => {
     it("should get node state", async () => {
-      const triggerProperties: NodeProperties = {
+      // nodeType is automatically set from class definition, so we can omit it
+      const triggerProperties = {
         id: "trigger-1",
         name: "Trigger",
-        nodeType: "test-trigger",
         version: 1,
-        position: [0, 0],
+        position: [0, 0] as [number, number],
       }
-      const trigger = new TestTrigger(triggerProperties)
+      const trigger = new TestTrigger(triggerProperties as NodeProperties)
       trigger.addOutput("output", "object")
       workflow.addNode(trigger)
       // Execute trigger first to set it to completed state
@@ -149,14 +160,14 @@ describe("ExecutionEngine", () => {
     })
 
     it("should get node metadata", async () => {
-      const triggerProperties: NodeProperties = {
+      // nodeType is automatically set from class definition, so we can omit it
+      const triggerProperties = {
         id: "trigger-1",
         name: "Trigger",
-        nodeType: "test-trigger",
         version: 1,
-        position: [0, 0],
+        position: [0, 0] as [number, number],
       }
-      const trigger = new TestTrigger(triggerProperties)
+      const trigger = new TestTrigger(triggerProperties as NodeProperties)
       trigger.addOutput("output", "object")
       workflow.addNode(trigger)
       // Execute trigger first to set it to completed state

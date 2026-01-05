@@ -6,13 +6,22 @@
 import { Workflow } from "../workflow"
 import { BaseNode } from "../base-node"
 import { NodeTypeRegistryImpl } from "../node-type-registry"
-import type { NodeProperties, ExecutionContext, NodeOutput } from "@workflow/interfaces"
+import type { NodePropertiesInput, ExecutionContext, NodeOutput } from "@workflow/interfaces"
 import { NodeState, WorkflowState } from "@workflow/interfaces"
 
 /**
  * Test node implementation
  */
 class TestNode extends BaseNode {
+  static readonly nodeType = "test-node"
+
+  constructor(properties: NodePropertiesInput) {
+    super({
+      ...properties,
+      nodeType: TestNode.nodeType,
+    })
+  }
+
   protected async process(_context: ExecutionContext): Promise<NodeOutput> {
     return { output: [] }
   }
@@ -25,22 +34,21 @@ describe("Workflow", () => {
 
   beforeEach(() => {
     workflow = new Workflow("test-workflow-1", undefined, "Test Workflow")
-    const properties1: NodeProperties = {
+    // nodeType is automatically set from class definition
+    const properties1 = {
       id: "node-1",
       name: "Node1",
-      nodeType: "test-node",
       version: 1,
-      position: [0, 0],
+      position: [0, 0] as [number, number],
     }
-    const properties2: NodeProperties = {
+    const properties2 = {
       id: "node-2",
       name: "Node2",
-      nodeType: "test-node",
       version: 1,
-      position: [100, 0],
+      position: [100, 0] as [number, number],
     }
-    node1 = new TestNode(properties1)
-    node2 = new TestNode(properties2)
+    node1 = new TestNode(properties1 as NodePropertiesInput)
+    node2 = new TestNode(properties2 as NodePropertiesInput)
   })
 
   describe("constructor", () => {
@@ -173,14 +181,14 @@ describe("Workflow", () => {
     })
 
     it("should reset regular nodes but not trigger nodes", () => {
-      const triggerProperties: NodeProperties = {
+      // nodeType is automatically set from class definition
+      const triggerProperties = {
         id: "trigger-1",
         name: "Trigger1",
-        nodeType: "trigger",
         version: 1,
-        position: [0, 0],
+        position: [0, 0] as [number, number],
         isTrigger: true,
-      }
+      } as NodePropertiesInput
       const triggerNode = new TestNode(triggerProperties)
       workflow.addNode(node1)
       workflow.addNode(triggerNode)

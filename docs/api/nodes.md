@@ -32,10 +32,10 @@ new ManualTrigger(properties: NodeProperties)
 
 **Example:**
 ```typescript
+// nodeType is automatically set from class definition
 const trigger = new ManualTrigger({
   id: "trigger-1",
   name: "trigger",
-  nodeType: "manual-trigger",
   version: 1,
   position: [0, 0],
 })
@@ -79,10 +79,10 @@ new ScheduleTrigger(properties: NodeProperties)
 
 **Example:**
 ```typescript
+// nodeType is automatically set from class definition
 const trigger = new ScheduleTrigger({
   id: "schedule-1",
   name: "schedule",
-  nodeType: "schedule-trigger",
   version: 1,
   position: [0, 0],
 })
@@ -152,13 +152,13 @@ new JavaScriptExecutionNode(properties: NodeProperties)
 
 **Example:**
 ```typescript
+// nodeType is automatically set from class definition
+// isTrigger defaults to false, so it can be omitted
 const node = new JavaScriptExecutionNode({
   id: "js-1",
   name: "js-node",
-  nodeType: "javascript",
   version: 1,
   position: [100, 0],
-  isTrigger: false,
 })
 ```
 

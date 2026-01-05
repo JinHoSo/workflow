@@ -5,12 +5,21 @@
 
 import { NodeFactory, nodeFactory } from "../node-factory"
 import { BaseNode } from "../base-node"
-import type { SerializedNode, ExecutionContext, NodeOutput } from "@workflow/interfaces"
+import type { SerializedNode, NodePropertiesInput, ExecutionContext, NodeOutput } from "@workflow/interfaces"
 
 /**
  * Test node implementation
  */
 class TestNode extends BaseNode {
+  static readonly nodeType = "test-node"
+
+  constructor(properties: NodePropertiesInput) {
+    super({
+      ...properties,
+      nodeType: TestNode.nodeType,
+    })
+  }
+
   protected async process(_context: ExecutionContext): Promise<NodeOutput> {
     return { output: [] }
   }

@@ -4,13 +4,23 @@
  */
 
 import { BaseNode } from "../base-node"
-import type { NodeProperties, ExecutionContext, NodeOutput } from "@workflow/interfaces"
+import type { NodeProperties, NodePropertiesInput, ExecutionContext, NodeOutput } from "@workflow/interfaces"
 import { NodeState, LinkType } from "@workflow/interfaces"
 
 /**
  * Test node implementation for testing BaseNode functionality
  */
 class TestNode extends BaseNode {
+  /** Node type identifier for this class */
+  static readonly nodeType = "test-node"
+
+  constructor(properties: NodePropertiesInput) {
+    super({
+      ...properties,
+      nodeType: TestNode.nodeType,
+    })
+  }
+
   protected async process(context: ExecutionContext): Promise<NodeOutput> {
     const inputData = context.input["input"] || []
     const normalized = Array.isArray(inputData) ? inputData : [inputData]
@@ -28,20 +38,42 @@ describe("BaseNode", () => {
   let properties: NodeProperties
 
   beforeEach(() => {
+    // nodeType is automatically set from class definition, so we can omit it
     properties = {
       id: "test-node-1",
       name: "TestNode",
-      nodeType: "test-node",
       version: 1,
-      position: [0, 0],
-      isTrigger: false,
-    }
+      position: [0, 0] as [number, number],
+      // isTrigger defaults to false if not provided
+    } as NodeProperties
     node = new TestNode(properties)
   })
 
   describe("constructor", () => {
+    it("should automatically set nodeType from class definition", () => {
+      expect(node.properties.nodeType).toBe("test-node")
+    })
+
+    it("should override user-provided nodeType with class definition", () => {
+      const nodeWithWrongType = new TestNode({
+        ...properties,
+        nodeType: "wrong-type",
+      })
+      expect(nodeWithWrongType.properties.nodeType).toBe("test-node")
+    })
+
+    it("should default isTrigger to false when not provided", () => {
+      const nodeWithoutTrigger = new TestNode({
+        ...properties,
+      })
+      expect(nodeWithoutTrigger.properties.isTrigger).toBe(false)
+    })
+
     it("should initialize node with provided properties", () => {
-      expect(node.properties).toEqual(properties)
+      expect(node.properties.id).toBe(properties.id)
+      expect(node.properties.name).toBe(properties.name)
+      expect(node.properties.nodeType).toBe("test-node") // Set by class
+      expect(node.properties.isTrigger).toBe(false) // Default value
       expect(node.state).toBe(NodeState.Idle)
       expect(node.config).toEqual({})
       expect(node.inputs).toEqual([])
@@ -224,6 +256,15 @@ describe("BaseNode", () => {
 
     it("should transition to Failed state on error", async () => {
       class ErrorNode extends BaseNode {
+        static readonly nodeType = "error-node"
+
+        constructor(props: NodePropertiesInput) {
+          super({
+            ...props,
+            nodeType: ErrorNode.nodeType,
+          })
+        }
+
         protected async process(_context: ExecutionContext): Promise<NodeOutput> {
           throw new Error("Test error")
         }
@@ -237,6 +278,15 @@ describe("BaseNode", () => {
 
     it("should set error when execution fails", async () => {
       class ErrorNode extends BaseNode {
+        static readonly nodeType = "error-node"
+
+        constructor(props: NodePropertiesInput) {
+          super({
+            ...props,
+            nodeType: ErrorNode.nodeType,
+          })
+        }
+
         protected async process(_context: ExecutionContext): Promise<NodeOutput> {
           throw new Error("Test error")
         }

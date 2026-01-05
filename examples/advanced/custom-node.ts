@@ -5,7 +5,7 @@
  */
 
 import { BaseNode } from "@workflow/core"
-import type { NodeProperties, ExecutionContext, NodeOutput, NodeConfiguration } from "@workflow/interfaces"
+import type { NodePropertiesInput, ExecutionContext, NodeOutput, NodeConfiguration } from "@workflow/interfaces"
 import { Workflow } from "@workflow/core"
 import { ManualTrigger } from "@workflow/nodes"
 import { ExecutionEngine } from "@workflow/execution"
@@ -14,8 +14,15 @@ import { ExecutionEngine } from "@workflow/execution"
  * Custom node that multiplies input value by a configured multiplier
  */
 class MultiplyNode extends BaseNode {
-  constructor(properties: NodeProperties) {
-    super(properties)
+  /** Node type identifier for this class */
+  static readonly nodeType = "multiply"
+
+  constructor(properties: NodePropertiesInput) {
+    // Automatically set nodeType from class definition, overriding any user-provided value
+    super({
+      ...properties,
+      nodeType: MultiplyNode.nodeType,
+    })
     this.addInput("input", "any")
     this.addOutput("output", "any")
   }
@@ -50,22 +57,22 @@ async function main() {
   const workflow = new Workflow("custom-node-workflow")
 
   // Create trigger
+  // nodeType is automatically set from class definition
   const trigger = new ManualTrigger({
     id: "trigger-1",
     name: "trigger",
-    nodeType: "manual-trigger",
     version: 1,
     position: [0, 0],
   })
 
   // Create custom node
+  // nodeType is automatically set from class definition
+  // isTrigger defaults to false, so it can be omitted
   const multiplyNode = new MultiplyNode({
     id: "multiply-1",
     name: "multiply",
-    nodeType: "multiply",
     version: 1,
     position: [100, 0],
-    isTrigger: false,
   })
 
   // Configure custom node

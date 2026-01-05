@@ -1,6 +1,7 @@
 import type {
   Node,
   NodeProperties,
+  NodePropertiesInput,
   NodeConfiguration,
   InputPort,
   OutputPort,
@@ -35,9 +36,18 @@ export abstract class BaseNode implements Node {
   /**
    * Creates a new WorkflowNodeBase instance
    * @param properties - Node properties (id, name, type, etc.)
+   * Note: nodeType should be set by subclass constructors from their static nodeType property
    */
-  constructor(properties: NodeProperties) {
-    this.properties = properties
+  constructor(properties: NodePropertiesInput) {
+    // Set default isTrigger to false if not provided
+    this.properties = {
+      ...properties,
+      isTrigger: properties.isTrigger ?? false,
+    } as NodeProperties
+    // Ensure nodeType is set (should be set by subclass)
+    if (!this.properties.nodeType) {
+      throw new Error("nodeType must be set. Subclasses should set it from their static nodeType property.")
+    }
     this.state = NodeState.Idle
     this.config = {}
     this.inputs = []
