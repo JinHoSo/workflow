@@ -2,6 +2,23 @@
 
 This guide explains how to develop plugins for the Workflow Engine.
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Quick Start](#quick-start)
+- [Plugin Structure](#plugin-structure)
+- [Plugin Manifest](#plugin-manifest)
+- [Node Development](#node-development)
+- [Configuration Schemas](#configuration-schemas)
+- [Testing](#testing)
+- [Protocol Compliance](#protocol-compliance)
+- [Development Mode](#development-mode)
+- [Publishing](#publishing)
+- [Best Practices](#best-practices)
+- [Examples](#examples)
+- [Troubleshooting](#troubleshooting)
+- [Resources](#resources)
+
 ## Overview
 
 Plugins extend the Workflow Engine by providing new node types. Each plugin can contain one or more node types that can be used in workflows.

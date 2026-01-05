@@ -96,11 +96,44 @@ console.log(result) // { value: 10 }
 
 ## Documentation
 
-- **[ARCHITECTURE.md](./docs/ARCHITECTURE.md)**: Detailed architecture documentation
-- **[PROTOCOLS.md](./docs/PROTOCOLS.md)**: Protocol usage patterns and best practices
-- **[VERSIONING.md](./docs/VERSIONING.md)**: Node type versioning strategy
-- **[PLUGIN_DEVELOPMENT.md](./docs/PLUGIN_DEVELOPMENT.md)**: Guide for developing plugins
-- **[MIGRATION.md](./docs/MIGRATION.md)**: Migration guide from old architecture
+Comprehensive documentation is available in the [`docs/`](./docs/) directory:
+
+### 🚀 Getting Started
+- [Getting Started Guide](./docs/getting-started/README.md) - Start here if you're new
+- [Installation](./docs/getting-started/installation.md) - Installation instructions
+- [Quick Start](./docs/getting-started/quick-start.md) - Get started in 5 minutes
+- [Your First Workflow](./docs/getting-started/your-first-workflow.md) - Build your first workflow
+- [Core Concepts](./docs/getting-started/core-concepts.md) - Understand key concepts
+
+### 📖 Guides
+- [Building Workflows](./docs/guides/building-workflows.md) - How to build workflows
+- [Working with Nodes](./docs/guides/working-with-nodes.md) - Understanding nodes
+- [Data Flow](./docs/guides/data-flow.md) - How data flows between nodes
+- [Error Handling](./docs/guides/error-handling.md) - Handling errors
+- [State Management](./docs/guides/state-management.md) - Execution state
+- [Workflow Patterns](./docs/guides/workflow-patterns.md) - Common patterns
+
+### 🔧 API Reference
+- [API Overview](./docs/api/README.md) - Complete API documentation
+- [Core API](./docs/api/core.md) - Workflow and BaseNode APIs
+- [Execution API](./docs/api/execution.md) - ExecutionEngine APIs
+- [Node Types API](./docs/api/nodes.md) - Built-in node types
+
+### 👨‍💻 Developer Resources
+- [Architecture](./docs/ARCHITECTURE.md) - System architecture
+- [Node Development Tutorial](./docs/NODE_DEVELOPMENT_TUTORIAL.md) - Create custom nodes
+- [Plugin Development Guide](./docs/PLUGIN_DEVELOPMENT.md) - Build plugins
+- [Best Practices](./docs/BEST_PRACTICES.md) - Development best practices
+- [Package Structure](./docs/PACKAGE_STRUCTURE.md) - Monorepo structure
+- [Migration Guide](./docs/MIGRATION_GUIDE.md) - Migration guide
+- [Troubleshooting](./docs/TROUBLESHOOTING.md) - Common issues
+
+### 📝 Examples
+- [Basic Examples](./examples/basic/) - Simple workflows
+- [Advanced Examples](./examples/advanced/) - Complex scenarios
+- [Integration Examples](./examples/integrations/) - External integrations
+
+For the complete documentation index, see [Documentation Overview](./docs/README.md).
 
 ## Node Types
 

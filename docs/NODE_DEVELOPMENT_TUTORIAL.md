@@ -2,6 +2,19 @@
 
 This tutorial walks you through creating your first workflow node.
 
+## Table of Contents
+
+- [Prerequisites](#prerequisites)
+- [Step 1: Create a Node](#step-1-create-a-node)
+- [Step 2: Understand the Generated Code](#step-2-understand-the-generated-code)
+- [Step 3: Implement Node Logic](#step-3-implement-node-logic)
+- [Step 4: Test the Node](#step-4-test-the-node)
+- [Step 5: Validate Protocol Compliance](#step-5-validate-protocol-compliance)
+- [Step 6: Use in a Workflow](#step-6-use-in-a-workflow)
+- [Advanced: Processing Input Data](#advanced-processing-input-data)
+- [Advanced: Error Handling](#advanced-error-handling)
+- [Next Steps](#next-steps)
+
 ## Prerequisites
 
 - Node.js >= 18.0.0
