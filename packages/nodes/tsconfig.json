@@ -4,17 +4,10 @@
     "composite": true,
     "rootDir": "./src",
     "tsBuildInfoFile": "./tsconfig.tsbuildinfo",
-    "baseUrl": ".",
-    "paths": {
-      "@workflow/core": ["../core/src"],
-      "@workflow/execution": ["../execution/src"],
-      "@workflow/interfaces": ["../interfaces/src"],
-      "@workflow/schemas": ["../schemas/src"],
-      "@workflow/secrets": ["../secrets/src"]
-    }
+    "baseUrl": "."
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts"],
+  "exclude": ["node_modules", "dist"],
   "references": [
     {
       "path": "../core"

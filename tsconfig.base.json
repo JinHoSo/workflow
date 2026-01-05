@@ -25,7 +25,19 @@
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "types": ["jest", "node"]
+    "types": ["jest", "node"],
+    "baseUrl": ".",
+    "paths": {
+      "@workflow/core": ["../core/src"],
+      "@workflow/interfaces": ["../interfaces/src"],
+      "@workflow/schemas": ["../schemas/src"],
+      "@workflow/secrets": ["../secrets/src"],
+      "@workflow/protocols": ["../protocols/src"],
+      "@workflow/execution": ["../execution/src"],
+      "@workflow/plugins": ["../plugins/src"],
+      "@workflow/nodes": ["../nodes/src"],
+      "@workflow/cli": ["../cli/src"]
+    }
   }
 }
 
