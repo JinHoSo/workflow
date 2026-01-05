@@ -1,0 +1,21 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "baseUrl": ".",
+    "paths": {
+      "@workflow/core": ["../core/src"],
+      "@workflow/interfaces": ["../interfaces/src"],
+      "@workflow/schemas": ["../schemas/src"],
+      "@workflow/secrets": ["../secrets/src"],
+      "@workflow/protocols": ["../protocols/src"],
+      "@workflow/execution": ["../execution/src"],
+      "@workflow/plugins": ["../plugins/src"],
+      "@workflow/nodes": ["../nodes/src"],
+      "@workflow/cli": ["../cli/src"]
+    }
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}
+
