@@ -1,5 +1,8 @@
 {
   "files": [],
+  "compilerOptions": {
+    "composite": false
+  },
   "references": [
     { "path": "./packages/interfaces" },
     { "path": "./packages/core" },
@@ -9,7 +12,6 @@
     { "path": "./packages/secrets" },
     { "path": "./packages/plugins" },
     { "path": "./packages/nodes" },
-    { "path": "./packages/cli" },
-    { "path": "./packages/test-utils" }
+    { "path": "./packages/cli" }
   ]
 }

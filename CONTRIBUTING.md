@@ -138,21 +138,88 @@ export class MyNode extends BaseNode {
 ### Writing Tests
 
 - Use Jest for testing
-- Place test files next to source files with `.test.ts` extension
+- Place test files in `src/**/__tests__/` directories with `.test.ts` extension
 - Test both happy paths and error cases
 - Mock external dependencies
+- Aim for at least 80% code coverage
 
-### Test Utilities
+### Running Tests
 
-Use `@workflow/test-utils` for node testing:
+Each package can run tests independently:
+
+```bash
+# Run all tests in a package
+cd packages/<package-name>
+yarn test
+
+# Run tests in watch mode
+yarn test:watch
+
+# Run with coverage
+yarn test --coverage
+```
+
+### Test Structure
 
 ```typescript
-import { simulateNodeExecution, createMockInputData } from "@workflow/test-utils"
+/**
+ * Tests for ComponentName
+ */
+import { ComponentName } from "../component-name"
 
-const result = await simulateNodeExecution(node, {
-  inputData: createMockInputData("input", [{ value: "test" }]),
+describe("ComponentName", () => {
+  let component: ComponentName
+
+  beforeEach(() => {
+    component = new ComponentName()
+  })
+
+  it("should do something", () => {
+    expect(component.method()).toBe(expectedValue)
+  })
 })
 ```
+
+### Testing Node Classes
+
+When testing nodes that extend `BaseNode`:
+
+```typescript
+class TestNode extends BaseNode {
+  protected async process(context: ExecutionContext): Promise<NodeOutput> {
+    return { output: [] }
+  }
+}
+
+describe("TestNode", () => {
+  let node: TestNode
+
+  beforeEach(() => {
+    node = new TestNode({
+      id: "test-1",
+      name: "TestNode",
+      nodeType: "test",
+      version: 1,
+      position: [0, 0],
+    })
+  })
+
+  it("should execute successfully", async () => {
+    node.addInput("input", "object")
+    node.addOutput("output", "object")
+    const context: ExecutionContext = {
+      input: { input: [{ value: "test" }] },
+      state: {},
+    }
+    const result = await node.run(context)
+    expect(result).toHaveProperty("output")
+  })
+})
+```
+
+### Test Coverage
+
+We aim for at least 80% code coverage for all packages. See `TESTING.md` for detailed testing guidelines and best practices.
 
 ## Code Style
 

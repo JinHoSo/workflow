@@ -7,14 +7,14 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "yarn workspace @workflow/interfaces build && yarn workspace @workflow/schemas build && yarn workspace @workflow/secrets build && yarn workspace @workflow/protocols build && yarn workspace @workflow/execution build && yarn workspace @workflow/plugins build && yarn workspace @workflow/core build && yarn workspace @workflow/nodes build && yarn workspace @workflow/cli build && yarn workspace @workflow/test-utils build",
-    "build:watch": "echo 'Use individual package build:watch scripts'",
-    "test": "echo 'Use individual package test scripts'",
-    "test:watch": "echo 'Use individual package test:watch scripts'",
-    "test:coverage": "echo 'Use individual package test:coverage scripts'",
-    "lint": "echo 'Use individual package lint scripts'",
-    "lint:fix": "echo 'Use individual package lint:fix scripts'",
-    "typecheck": "echo 'Use individual package typecheck scripts'",
+    "build": "yarn workspace @workflow/interfaces build && yarn workspace @workflow/schemas build && yarn workspace @workflow/secrets build && yarn workspace @workflow/protocols build && yarn workspace @workflow/execution build && yarn workspace @workflow/plugins build && yarn workspace @workflow/core build && yarn workspace @workflow/nodes build && yarn workspace @workflow/cli build",
+    "build:watch": "yarn workspace @workflow/interfaces build:watch & yarn workspace @workflow/schemas build:watch & yarn workspace @workflow/secrets build:watch & yarn workspace @workflow/protocols build:watch & yarn workspace @workflow/execution build:watch & yarn workspace @workflow/plugins build:watch & yarn workspace @workflow/core build:watch & yarn workspace @workflow/nodes build:watch & yarn workspace @workflow/cli build:watch & wait",
+    "test": "yarn workspace @workflow/interfaces test && yarn workspace @workflow/schemas test && yarn workspace @workflow/secrets test && yarn workspace @workflow/protocols test && yarn workspace @workflow/execution test && yarn workspace @workflow/plugins test && yarn workspace @workflow/core test && yarn workspace @workflow/nodes test && yarn workspace @workflow/cli test",
+    "test:watch": "yarn workspace @workflow/interfaces test:watch & yarn workspace @workflow/schemas test:watch & yarn workspace @workflow/secrets test:watch & yarn workspace @workflow/protocols test:watch & yarn workspace @workflow/execution test:watch & yarn workspace @workflow/plugins test:watch & yarn workspace @workflow/core test:watch & yarn workspace @workflow/nodes test:watch & yarn workspace @workflow/cli test:watch & wait",
+    "test:coverage": "yarn workspace @workflow/interfaces test --coverage && yarn workspace @workflow/schemas test --coverage && yarn workspace @workflow/secrets test --coverage && yarn workspace @workflow/protocols test --coverage && yarn workspace @workflow/execution test --coverage && yarn workspace @workflow/plugins test --coverage && yarn workspace @workflow/core test --coverage && yarn workspace @workflow/nodes test --coverage && yarn workspace @workflow/cli test --coverage",
+    "lint": "yarn workspace @workflow/interfaces lint && yarn workspace @workflow/schemas lint && yarn workspace @workflow/secrets lint && yarn workspace @workflow/protocols lint && yarn workspace @workflow/execution lint && yarn workspace @workflow/plugins lint && yarn workspace @workflow/core lint && yarn workspace @workflow/nodes lint && yarn workspace @workflow/cli lint",
+    "lint:fix": "yarn workspace @workflow/interfaces lint:fix && yarn workspace @workflow/schemas lint:fix && yarn workspace @workflow/secrets lint:fix && yarn workspace @workflow/protocols lint:fix && yarn workspace @workflow/execution lint:fix && yarn workspace @workflow/plugins lint:fix && yarn workspace @workflow/core lint:fix && yarn workspace @workflow/nodes lint:fix && yarn workspace @workflow/cli lint:fix",
+    "typecheck": "yarn workspace @workflow/interfaces typecheck && yarn workspace @workflow/schemas typecheck && yarn workspace @workflow/secrets typecheck && yarn workspace @workflow/protocols typecheck && yarn workspace @workflow/execution typecheck && yarn workspace @workflow/plugins typecheck && yarn workspace @workflow/core typecheck && yarn workspace @workflow/nodes typecheck && yarn workspace @workflow/cli typecheck",
     "clean": "find packages -name dist -type d -exec rm -rf {} + && find packages -name tsconfig.tsbuildinfo -delete"
   },
   "keywords": [

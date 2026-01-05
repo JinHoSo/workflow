@@ -98,11 +98,17 @@ export class PluginRegistry {
 
   /**
    * Gets a registered plugin
-   * @param pluginName - Name of the plugin
+   * @param pluginName - Name of the plugin, or "plugin@version" format
    * @param version - Optional version (returns latest if not specified)
    * @returns Plugin instance or undefined
    */
   get(pluginName: string, version?: string): Plugin | undefined {
+    // Check if pluginName contains version (format: "plugin@version")
+    if (pluginName.includes("@") && !version) {
+      const [name, ver] = pluginName.split("@")
+      return this.plugins.get(`${name}@${ver}`)
+    }
+
     if (version) {
       return this.plugins.get(`${pluginName}@${version}`)
     }

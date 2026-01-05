@@ -1,4 +1,4 @@
-import type { JsonSchema } from "@workflow/schemas"
+import type { JsonSchema } from "@workflow/interfaces"
 
 /**
  * JSON Schema for ScheduleTrigger configuration

@@ -73,7 +73,7 @@ export async function createPlugin(pluginName: string, options: CreatePluginOpti
   await generatePluginManifest(pluginDir, pluginName, author, description)
 
   // Generate plugin index file
-  await generatePluginIndex(pluginDir, pluginName)
+  await generatePluginIndex(pluginDir)
 
   // Generate package.json with workflow metadata
   await generatePluginPackageJson(pluginDir, pluginName, author, description)
@@ -123,7 +123,7 @@ ${author ? `  author: "${author}",` : ""}
 /**
  * Generates plugin index file
  */
-async function generatePluginIndex(pluginDir: string, pluginName: string): Promise<void> {
+async function generatePluginIndex(pluginDir: string): Promise<void> {
   const indexContent = `import type { Plugin } from "workflow-engine"
 import { manifest } from "./manifest"
 

@@ -118,9 +118,14 @@ export class NodeTypeRegistryImpl implements NodeTypeRegistry {
     const pluginKey = `${plugin.manifest.name}@${plugin.manifest.version}`
     const registeredKeys: string[] = []
 
-    for (const NodeClass of plugin.nodeTypes) {
+    // Map manifest node type names to node classes
+    // Assumes manifest.nodeTypes and plugin.nodeTypes arrays are in the same order
+    for (let i = 0; i < plugin.nodeTypes.length; i++) {
+      const NodeClass = plugin.nodeTypes[i]
+      const nodeTypeName = plugin.manifest.nodeTypes[i] || this.extractNodeTypeNameFromClass(NodeClass)
+
       // Create NodeType instance from node class
-      const nodeType = this.createNodeTypeFromClass(NodeClass, plugin.manifest.name)
+      const nodeType = this.createNodeTypeFromClass(NodeClass, plugin.manifest.name, nodeTypeName)
 
       // Register the node type
       this.register(nodeType)
@@ -150,29 +155,42 @@ export class NodeTypeRegistryImpl implements NodeTypeRegistry {
   }
 
   /**
+   * Extracts node type name from class name
+   * @param NodeClass - Node class constructor
+   * @returns Node type name
+   */
+  private extractNodeTypeNameFromClass(
+    NodeClass: new (properties: import("@workflow/interfaces").NodeProperties) => BaseNode,
+  ): string {
+    return NodeClass.name
+      .replace(/Node$/, "")
+      .replace(/([A-Z])/g, "-$1")
+      .toLowerCase()
+      .replace(/^-/, "")
+  }
+
+  /**
    * Creates a NodeType instance from a BaseNode class
    * Extracts metadata from the class and creates a wrapper that implements NodeType interface
    * @param NodeClass - Node class constructor
    * @param pluginName - Name of the plugin providing this node type
+   * @param nodeTypeName - Optional node type name (if not provided, extracted from class name)
    * @returns NodeType instance
    */
   private createNodeTypeFromClass(
     NodeClass: new (properties: import("@workflow/interfaces").NodeProperties) => BaseNode,
     pluginName: string,
+    nodeTypeName?: string,
   ): NodeType {
-    // Extract node type name from class name (e.g., "JavaScriptNode" -> "javascript")
-    const nodeTypeName = NodeClass.name
-      .replace(/Node$/, "")
-      .replace(/([A-Z])/g, "-$1")
-      .toLowerCase()
-      .replace(/^-/, "")
+    // Use provided node type name or extract from class name
+    const finalNodeTypeName = nodeTypeName || this.extractNodeTypeNameFromClass(NodeClass)
 
     // Create a temporary instance to extract configuration schema if available
     // We'll use a minimal properties object - the actual node will be created with proper properties later
     const tempProperties: import("@workflow/interfaces").NodeProperties = {
       id: "temp-id",
       name: "temp",
-      nodeType: nodeTypeName,
+      nodeType: finalNodeTypeName,
       version: 1,
       position: [0, 0],
       isTrigger: false,
@@ -188,7 +206,7 @@ export class NodeTypeRegistryImpl implements NodeTypeRegistry {
 
     // Create NodeType metadata
     const metadata: import("@workflow/interfaces").NodeTypeMetadata = {
-      name: nodeTypeName,
+      name: finalNodeTypeName,
       displayName: NodeClass.name.replace(/([A-Z])/g, " $1").trim(),
       description: `Node type provided by plugin ${pluginName}`,
       version: 1, // Default version, can be enhanced to extract from class

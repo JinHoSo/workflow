@@ -7,7 +7,7 @@ import * as path from "path"
 import { createNode } from "../commands/create-node"
 
 describe("createNode", () => {
-  const testDir = path.join(__dirname, "../../../test-temp")
+  const testDir = path.join(__dirname, "../../../test-temp-node")
   const nodeName = "test-node"
 
   beforeEach(async () => {

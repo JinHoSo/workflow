@@ -1,12 +1,23 @@
+const baseConfig = require("../../jest.config.base.js")
+
 module.exports = {
-  preset: "ts-jest",
-  testEnvironment: "node",
-  roots: ["<rootDir>/src"],
-  testMatch: ["**/__tests__/**/*.ts", "**/?(*.)+(spec|test).ts"],
-  collectCoverageFrom: ["src/**/*.ts", "!src/**/*.d.ts", "!src/**/__tests__/**"],
-  moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json"],
+  ...baseConfig,
+  testMatch: ["**/__tests__/**/*.ts", "**/*.(spec|test).ts"],
+  testPathIgnorePatterns: ["/node_modules/", "/dist/", "/src/commands/test.ts"],
+  moduleNameMapper: {
+    "^inquirer$": "<rootDir>/src/__mocks__/inquirer.js",
+  },
   transform: {
-    "^.+\\.ts$": "ts-jest",
+    "^.+\\.ts$": [
+      "ts-jest",
+      {
+        tsconfig: {
+          moduleResolution: "node",
+          esModuleInterop: true,
+          allowSyntheticDefaultImports: true,
+          skipLibCheck: true,
+        },
+      },
+    ],
   },
 }
-

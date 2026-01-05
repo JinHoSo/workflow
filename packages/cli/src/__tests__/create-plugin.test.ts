@@ -7,7 +7,7 @@ import * as path from "path"
 import { createPlugin } from "../commands/create-plugin"
 
 describe("createPlugin", () => {
-  const testDir = path.join(__dirname, "../../../test-temp")
+  const testDir = path.join(__dirname, "../../../test-temp-plugin")
   const pluginName = "test-plugin"
 
   beforeEach(async () => {

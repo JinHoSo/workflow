@@ -8,4 +8,5 @@ export * from "./trigger"
 export * from "./execution-state"
 export * from "./schedule"
 export type { WorkflowExportData, SerializedNode, NodeFactory, MockData } from "./workflow"
+export type { JsonSchema } from "./node-type"
 

@@ -1,9 +1,9 @@
 {
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
-    "ecmaVersion": 2020,
-    "sourceType": "module",
-    "project": "./tsconfig.json"
+    "ecmaFeatures": { "jsx": true, "destructuring": true },
+    "ecmaVersion": 12,
+    "sourceType": "module"
   },
   "extends": [
     "eslint:recommended",

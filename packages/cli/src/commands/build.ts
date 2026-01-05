@@ -39,7 +39,7 @@ export async function build(options: BuildOptions = {}): Promise<void> {
 
   // Validate plugin structure if it's a plugin
   if (isPlugin) {
-    await validatePluginStructure(cwd, packageJson)
+    await validatePluginStructure(cwd)
   }
 
   // Run TypeScript compilation
@@ -63,7 +63,7 @@ export async function build(options: BuildOptions = {}): Promise<void> {
 
   // Validate metadata if it's a plugin
   if (isPlugin) {
-    await validatePluginMetadata(cwd, packageJson)
+    await validatePluginMetadata(packageJson)
   }
 
   console.log(chalk.green(`✓ Build completed successfully`))
@@ -72,7 +72,7 @@ export async function build(options: BuildOptions = {}): Promise<void> {
 /**
  * Validates plugin directory structure
  */
-async function validatePluginStructure(pluginDir: string, packageJson: Record<string, unknown>): Promise<void> {
+async function validatePluginStructure(pluginDir: string): Promise<void> {
   const requiredDirs = ["src"]
   const requiredFiles = ["src/index.ts"]
 
@@ -96,7 +96,7 @@ async function validatePluginStructure(pluginDir: string, packageJson: Record<st
 /**
  * Validates plugin metadata
  */
-async function validatePluginMetadata(pluginDir: string, packageJson: Record<string, unknown>): Promise<void> {
+async function validatePluginMetadata(packageJson: Record<string, unknown>): Promise<void> {
   const workflow = packageJson.workflow as Record<string, unknown> | undefined
 
   if (!workflow) {
