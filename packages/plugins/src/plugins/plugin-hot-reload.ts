@@ -5,8 +5,8 @@
 
 import * as chokidar from "chokidar"
 import * as path from "path"
+import * as fs from "fs"
 import type { PluginRegistry } from "./plugin-registry"
-import type { Plugin } from "./plugin-manifest"
 
 /**
  * Options for hot reloading
@@ -85,7 +85,7 @@ export class PluginHotReloader {
     for (const dir of watchDirs) {
       const watcher = chokidar!.watch(patterns, {
         cwd: dir,
-        ignored: /(^|[\/\\])\../, // ignore dotfiles
+        ignored: /(^|[/\\])\../u, // ignore dotfiles
         persistent: true,
       })
 
@@ -135,6 +135,7 @@ export class PluginHotReloader {
       try {
         await handler(event, filePath)
       } catch (error) {
+        // eslint-disable-next-line no-console
         console.error(`Error in hot reload handler: ${error instanceof Error ? error.message : String(error)}`)
       }
     }
@@ -153,6 +154,7 @@ export class PluginHotReloader {
       try {
         await handler("error", error.message)
       } catch (handlerError) {
+        // eslint-disable-next-line no-console
         console.error(`Error in hot reload error handler: ${handlerError instanceof Error ? handlerError.message : String(handlerError)}`)
       }
     }
@@ -168,7 +170,7 @@ export class PluginHotReloader {
   /**
    * Reloads a plugin
    */
-  private async reloadPlugin(filePath: string, options: HotReloadOptions): Promise<void> {
+  private async reloadPlugin(filePath: string, _options: HotReloadOptions): Promise<void> {
     // Find plugin directory
     const pluginDir = this.findPluginDir(filePath)
     if (!pluginDir) {
@@ -182,11 +184,13 @@ export class PluginHotReloader {
       // 3. Unregister old plugin
       // 4. Register new plugin
       // For now, we'll just log the reload attempt
+      // eslint-disable-next-line no-console
       console.log(`Reloading plugin at ${pluginDir}...`)
 
       // TODO: Implement actual plugin reloading
       // This requires module cache management which is complex
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error(`Failed to reload plugin: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
@@ -199,9 +203,10 @@ export class PluginHotReloader {
 
     while (current !== path.dirname(current)) {
       const packageJsonPath = path.join(current, "package.json")
-      if (require("fs").existsSync(packageJsonPath)) {
+      if (fs.existsSync(packageJsonPath)) {
         try {
-          const packageJson = require(packageJsonPath)
+          const packageJsonContent = fs.readFileSync(packageJsonPath, "utf-8")
+          const packageJson = JSON.parse(packageJsonContent) as { workflow?: { plugin?: boolean } }
           if (packageJson.workflow?.plugin === true) {
             return current
           }

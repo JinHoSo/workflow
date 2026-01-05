@@ -2,16 +2,5 @@
   "files": [],
   "compilerOptions": {
     "composite": false
-  },
-  "references": [
-    { "path": "./packages/interfaces" },
-    { "path": "./packages/core" },
-    { "path": "./packages/execution" },
-    { "path": "./packages/protocols" },
-    { "path": "./packages/schemas" },
-    { "path": "./packages/secrets" },
-    { "path": "./packages/plugins" },
-    { "path": "./packages/nodes" },
-    { "path": "./packages/cli" }
-  ]
+  }
 }

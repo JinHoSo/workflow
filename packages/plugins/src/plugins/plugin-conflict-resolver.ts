@@ -3,7 +3,6 @@
  * Handles conflicts when multiple plugins provide the same node type
  */
 
-import type { Plugin, PluginManifest } from "./plugin-manifest"
 import type { DiscoveredPlugin } from "./plugin-discovery"
 
 /**

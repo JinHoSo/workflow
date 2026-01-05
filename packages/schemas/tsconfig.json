@@ -1,17 +1,10 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "composite": true,
-    "rootDir": "./src",
-    "tsBuildInfoFile": "./tsconfig.tsbuildinfo",
+    "outDir": "./dist",
     "baseUrl": "."
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"],
-  "references": [
-    {
-      "path": "../interfaces"
-    }
-  ]
+  "exclude": ["node_modules", "dist"]
 }
 

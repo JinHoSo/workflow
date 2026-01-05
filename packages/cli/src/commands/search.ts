@@ -54,13 +54,11 @@ export async function searchPlugins(options: SearchOptions = {}): Promise<void> 
     searchParams.set("text", `keywords:workflow-plugin ${query}`)
     searchParams.set("size", String(limit))
 
-    const response = await npmFetch.json("/-/v1/search", {
+    const response = (await npmFetch.json("/-/v1/search", {
       query: searchParams,
-    })
+    })) as { objects: Array<{ package: PluginSearchResult }> }
 
-    const results = (response.objects as Array<{ package: PluginSearchResult }>).map(
-      (obj) => obj.package,
-    )
+    const results = response.objects.map((obj) => obj.package)
 
     // Filter by category if specified
     let filtered = results

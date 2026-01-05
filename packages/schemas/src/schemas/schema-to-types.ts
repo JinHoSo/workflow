@@ -177,7 +177,7 @@ function mapJsonSchemaTypeToTypeScript(type: string, schema: JsonSchema): string
     case "string":
       // Check for enum
       if (schema.enum && Array.isArray(schema.enum)) {
-        const enumValues = schema.enum.map((v) => `"${v}"`).join(" | ")
+        const enumValues = schema.enum.map((v: unknown) => `"${String(v)}"`).join(" | ")
         return enumValues
       }
       return "string"
